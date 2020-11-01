@@ -62,7 +62,21 @@ public class MongoDAO implements IMongoDAO {
 	@Override
 	public void savePeriodo(Periodo periodo) {
 		BD.remove(periodo);
-		
+
 		BD.save(periodo);
+	}
+
+	@Override
+	public Periodo getPeriodoLast() {
+		return getAllPeridosSorted().get(0);
+	}
+
+	@Override
+	public List<Periodo> getAllPeridosSorted() {
+		List<Periodo> result = BD.findAll(Periodo.class);
+		result.sort((o1, o2) -> {
+			return o2.getPeriodo().compareTo(o1.getPeriodo());
+		});
+		return result;
 	}
 }

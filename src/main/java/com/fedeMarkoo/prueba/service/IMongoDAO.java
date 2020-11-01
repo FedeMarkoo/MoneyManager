@@ -22,4 +22,8 @@ public interface IMongoDAO {
 	public Periodo getPeriodo(String periodo);
 
 	public void savePeriodo(Periodo p);
+
+	public Periodo getPeriodoLast();
+
+	public List<Periodo> getAllPeridosSorted();
 }
