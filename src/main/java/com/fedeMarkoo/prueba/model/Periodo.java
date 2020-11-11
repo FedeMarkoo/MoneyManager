@@ -11,13 +11,13 @@ public class Periodo {
 	private String periodo;
 	private List<Cuota> cuotas;
 	private List<Movimiento> movimientos;
-	private Integer sueldo;
+	private Double sueldo;
 
-	public Integer getSueldo() {
+	public Double getSueldo() {
 		return sueldo;
 	}
 
-	public void setSueldo(Integer sueldo) {
+	public void setSueldo(Double sueldo) {
 		this.sueldo = sueldo;
 	}
 

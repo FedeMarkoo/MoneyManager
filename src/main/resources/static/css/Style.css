@@ -37,3 +37,8 @@ table tr:nth-child(odd) {
 table tr:nth-child(even) {
 	background-color: #ffffff;
 }
+
+.buttonhist {
+	color: gray;
+    margin-left: 20%;
+}

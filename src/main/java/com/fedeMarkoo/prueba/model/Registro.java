@@ -25,7 +25,6 @@ public abstract class Registro implements Comparable<Registro> {
 	}
 
 	public Registro() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public String getDescripcion() {

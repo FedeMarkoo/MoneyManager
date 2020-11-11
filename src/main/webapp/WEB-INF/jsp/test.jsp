@@ -1,47 +1,54 @@
-    <!DOCTYPE html>
-    <%
+<!DOCTYPE html>
+<%
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", -1);
     %>
-    <html>
+<html>
 
-    <HEAD>
-        <META HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">
-        <META HTTP-EQUIV="Expires" CONTENT="-1">
-        <title>Control de guita</title>
-    </HEAD>
+<HEAD>
+    <META HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">
+    <META HTTP-EQUIV="Expires" CONTENT="-1">
+    <title>Control de guita</title>
+    <script src="https://kit.fontawesome.com/a7e4de9cfc.js" crossorigin="anonymous"></script>
     <link href="css/Style.css" rel="stylesheet">
-    <script
-            src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
-    <body>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        fas {
+            text-align: right;
+        }
+    </style>
+</HEAD>
+
+<body>
     <div>
         <div ng-app="myApp" ng-controller="movsCtrl">
 
             <button class="collapsible">Cargar movimientos</button>
             <div class="content">
                 <div>
-                    <label for="periodo">periodo:</label> <input ng-model="load.periodo"
-                                                                 placeholder="Text" type="text"/>
+                    <label for="periodo">periodo:</label> <input ng-model="load.periodo" placeholder="Text"
+                        type="text" />
                 </div>
                 <div>
-                    <label for="visacompra">visa compra:</label> <input ng-model="load.visacompra"
-                                                                     placeholder="Text" type="text"/>
+                    <label for="visacompra">visa compra:</label> <input ng-model="load.visacompra" placeholder="Text"
+                        type="text" />
                 </div>
                 <div>
-                    <label for="visacuota">visa cuota:</label> <input ng-model="load.visacuota"
-                                                                    placeholder="Text" type="text"/>
+                    <label for="visacuota">visa cuota:</label> <input ng-model="load.visacuota" placeholder="Text"
+                        type="text" />
                 </div>
                 <div>
                     <label for="mastercompra">master compra:</label> <input ng-model="load.mastercompra"
-                                                                       placeholder="Text" type="text"/>
+                        placeholder="Text" type="text" />
                 </div>
                 <div>
-                    <label for="mastercuota">master cuota:</label> <input ng-model="load.mastercuota"
-                                                                      placeholder="Text" type="text"/>
+                    <label for="mastercuota">master cuota:</label> <input ng-model="load.mastercuota" placeholder="Text"
+                        type="text" />
                 </div>
                 <div>
-                    <input type="submit" value="Submit" id="button-1" ng-click="sendAJAX()"/>
+                    <input type="submit" value="Submit" id="button-1" ng-click="sendAJAX()" />
                 </div>
             </div>
 
@@ -51,7 +58,8 @@
                     <input type="text" ng-model="fcom" placeholder="Filtro">
                     <label>
                         <select ng-model="listForOrder" ng-init="listForOrder='monto'">
-                            <option ng-repeat="q in orders" value="{{q.val}}" selected="{{q.default}}">{{q.des}}</option>
+                            <option ng-repeat="q in orders" value="{{q.val}}" selected="{{q.default}}">{{q.des}}
+                            </option>
                         </select>
                     </label>
                     <input type="checkbox" ng-model="descCompra" ng-init="descCompra=true">
@@ -66,7 +74,7 @@
                         <th>Monto {{ getTotalCompra() | currency}}</th>
                         <th>Dolar</th>
                     </tr>
-                    <tr ng-repeat="x in movs | filter : {'descripcion' : fcom} | orderBy: listForOrder: descCompra">
+                    <tr ng-repeat="x in compras=(movs | filter : {$ : fcom}) | orderBy: listForOrder: descCompra">
                         <td>{{x.fecha | date:'dd/MM/yyyy'}}</td>
                         <td>{{x.descripcion}}</td>
                         <td>{{x.tipo}}</td>
@@ -96,11 +104,12 @@
                         <th>Proximo {{getTotalProximo() | currency}}</th>
                         <th>Resto cuotas</th>
                         <th>Total cuotas</th>
-                        <th>Monto {{getTotalCuota() | currency}}</th>
+                        <th>Monto Resto{{getTotalCuota() | currency}}</th>
                         <th>Dolar</th>
                         <th>Monto Total {{getTotalCuota2() | currency}}</th>
                     </tr>
-                    <tr ng-repeat="x in cuota | filter : {'descripcion' : fcuo} | orderBy: listForOrderC: descCuota" ng-model="cuotas">
+                    <tr ng-repeat="x in cuota | filter : {'descripcion' : fcuo} | orderBy: listForOrderC: descCuota"
+                        ng-model="cuotas">
                         <td>{{x.fecha | date:'dd/MM/yyyy'}}</td>
                         <td>{{x.descripcion}}</td>
                         <td>{{x.comprobante}}</td>
@@ -140,7 +149,8 @@
                         <th>{{getMonth(8)}} {{getMonthAmount(8) | currency}}</th>
                         <th>{{getMonth(9)}} {{getMonthAmount(9) | currency}}</th>
                     </tr>
-                    <tr ng-repeat="x in cuota | filter : {'descripcion' : fcuoP} | orderBy: listForOrderP: descCuotaP" ng-model="proyec">
+                    <tr ng-repeat="x in cuota | filter : {'descripcion' : fcuoP} | orderBy: listForOrderP: descCuotaP"
+                        ng-model="proyec">
                         <td>{{x.descripcion}}</td>
                         <td>{{x.origen}}</td>
                         <td>{{x.resto}}</td>
@@ -161,16 +171,37 @@
 
             <button class="collapsible">Proyeccion e Historico</button>
             <div class="content">
+                <i class="buttonhist fas fa-backward" ng-click="change(-1)"></i> <i class="buttonhist fas fa-eraser"
+                    ng-click="change(-defase)"></i><i class="buttonhist fas fa-forward" ng-click="change(1)"></i><i
+                    class="buttonhist fas fa-fast-forward" ng-click="change(6)"></i>
                 <table>
                     <tr>
-                       <th></th>
-                       <th ng-repeat="x in proyeccionHistorico['amounts'] track by $index" ng-model="hist">{{getMonth($index-4)}} {{x | currency}}</th>
+                        <th><i class="fas fa-plus-circle" ng-click="addRow()"></i></th>
+                        <th ng-repeat="x in proyeccionHistorico['amounts'] track by $index" ng-model="hist">
+                            {{getMonth($index-4)}} {{x | currency}}</th>
                     </tr>
                     <tr ng-repeat="x in proyeccionHistorico['historicos']" ng-model="hist">
-                        <td>{{x.descript}}</td>
-                       <td ng-repeat="monto in x.amount track by $index" ng-model="qwe">{{monto | currency}}</td>
+                        <td>{{x.decrypt}}</td>
+                        <td ng-repeat="monto in x.amount track by $index" ng-model="qwe">{{monto | currency}}
+                            <i class="far fa-edit"
+                                ng-if="monto != null && (x.editableType == 1 ||  x.editableType == 2) && $index + defase >= 3"
+                                ng-click="edit(x,$index)"></i>
+                            <i class="fas fa-plus"
+                                ng-if="monto == null && x.editableType == 2 && ($index + defase == 4 || $index + defase == 3)"
+                                ng-click="edit(x,$index)"></i>
+                        </td>
+                    </tr>
+                    <tr ng-repeat="x in proyeccionHistorico['newRow']" ng-model="hist" id="nueva">
+                        <td contenteditable="true">{{x.decrypt}}</td>
+                        <td contenteditable="true" ng-repeat="monto in x.amount track by $index" ng-model="qwe">
+                            {{monto | currency}}
+                        <td><i class="fas fa-check-double" ng-click="saveNew()"></i></td>
+                    </tr>
                     </tr>
                 </table>
+
+                <input type="number" ng-model="editedItem.amount[editedItem.index]" />
+                <button ng-click="saveModif()">save</button>
             </div>
         </div>
     </div>
@@ -178,12 +209,59 @@
     <script>
         angular.module('myApp', []).controller('movsCtrl',
             function ($scope, $http) {
+                $scope.defase = 0;
+
+                $scope.change = function (a) {
+                    $scope.defase += a;
+
+                    $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
+                        $scope.proyeccionHistorico = response.data;
+                    });
+                }
+
+                $scope.edit = function (item, index) {
+                    $scope.editedItem = angular.copy(item);
+                    $scope.editedItem.index = index;
+                };
+
+                $scope.addRow = function () {
+                    $scope.proyeccionHistorico['newRow'] = [{ decrypt: "Nuevo", amount: [null, null, null, null, null, null, null, null, null] }]
+                };
+
+                $scope.saveModif = function () {
+                    $http.post("movs/modifHistorico", $scope.editedItem).then(function () {
+                        $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
+                            $scope.proyeccionHistorico = response.data;
+                        });
+                    });
+                }
+
+                $scope.saveNew = function () {
+                    let arr = $('#nueva').find('td').get().map(function (cell) {
+                        return cell.innerText;
+                    });
+                    let decrypt = arr.splice(0, 1)[0];
+                    let amounts = arr.splice(0, 9);
+                    for (let i = 0; i < amounts.length; i++) {
+                        if (amounts[i] == "")
+                            amounts[i] = null;
+                    }
+
+                    let hist = new Object();
+                    hist['decrypt'] = decrypt;
+                    hist['amount'] = amounts;
+
+                    $http.post("movs/newHistorico", hist).then(function () {
+                        $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
+                            $scope.proyeccionHistorico = response.data;
+                        });
+                    });
+                }
+
                 $scope.getTotalCompra = function () {
                     let total = 0;
-                    if (!$scope.movs) return;
-                    $scope.movs.filter(function (a) {
-                        return !$scope.fcom || a.descripcion.toLowerCase().match($scope.fcom.toLowerCase())
-                    }).forEach(function (a) {
+                    if (!$scope.compras) return;
+                    $scope.compras.forEach(function (a) {
                         total += a.monto;
                     });
                     return total;
@@ -222,37 +300,43 @@
                     return total;
                 }
 
-                $scope.showAmountMonth = function(monto, resto, columna){
-                    if(resto<columna) return null;
+                $scope.showAmountMonth = function (monto, resto, columna) {
+                    if (resto < columna) return null;
 
-                    return monto/resto;
+                    return monto / resto;
                 }
 
                 $scope.sendAJAX = function () {
-                    $http.post("movs/setPeriodo", $scope.load.periodo);
-                    $http.post("movs/visa1", $scope.load.visacompra);
-                    $http.post("movs/visa2", $scope.load.visacuota);
-                    $http.post("movs/master1", $scope.load.mastercompra);
-                    $http.post("movs/master2", $scope.load.mastercuota);
+                    $http.post("movs/setPeriodo", $scope.load.periodo).then(function () {
+                        $http.post("movs/visa1", $scope.load.visacompra).then(function () {
+                            $http.post("movs/visa2", $scope.load.visacuota).then(function () {
+                                $http.post("movs/master1", $scope.load.mastercompra).then(function () {
+                                    $http.post("movs/master2", $scope.load.mastercuota).then(function () {
 
-                    $http.get("movs/get").then(function (response) {
-                        $scope.movs = response.data.movimientos;
-                        $scope.cuota = response.data.cuotas;
+                                        $http.get("movs/get").then(function (response) {
+                                            $scope.movs = response.data.movimientos;
+                                            $scope.cuota = response.data.cuotas;
+                                        });
+                                    })
+                                })
+                            })
+                        })
                     });
                 }
 
                 meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-                $scope.getMonth = function(plus){
+                $scope.getMonth = function (plus) {
                     d = new Date();
-                    return meses[(d.getMonth()+plus)%12];
+                    d.setMonth(d.getMonth() + $scope.defase + plus);
+                    return meses[(d.getMonth()) % 12] + " " + d.getFullYear();
                 }
 
-                $scope.customSort = function(param){
-                  return param.monto/param.resto;
+                $scope.customSort = function (param) {
+                    return param.monto / param.resto;
                 }
 
-                $scope.getMonthAmount = function(plus){
+                $scope.getMonthAmount = function (plus) {
                     let total = 0;
                     if (!$scope.cuota) return;
                     $scope.cuota.filter(function (a) {
@@ -263,44 +347,44 @@
                     return total;
                 }
 
-                $scope.getAmountPro = function(index){
-                    let amounts = [0,0,0,0,0,0,0,0,0];
+                $scope.getAmountPro = function (index) {
+                    let amounts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
                     $scope.proyeccionHistorico[index];
                 }
 
                 $http.get("movs/get").then(function (response) {
-                     $scope.movs = response.data.movimientos;
-                     $scope.cuota = response.data.cuotas;
-                 });
+                    $scope.movs = response.data.movimientos;
+                    $scope.cuota = response.data.cuotas;
+                });
 
-                $http.get("movs/getProyeccionHistorico").then(function (response) {
-                     $scope.proyeccionHistorico = response.data;
-                 });
+                $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
+                    $scope.proyeccionHistorico = response.data;
+                });
 
                 $scope.orders = [
-                    {des: "Tipo", val: "tipo", default:" ng-selected=\"{{q.default}}\""}
-                    , {des: "Monto", val: "monto", default:true}
-                    , {des: "Dolar", val: "dolar", default:false}
-                    , {des: "Fecha", val: "fecha", default:false}
-                    , {des: "Descripcion", val: "descripcion", default:false}
+                    { des: "Tipo", val: "tipo", default: " ng-selected=\"{{q.default}}\"" }
+                    , { des: "Monto", val: "monto", default: true }
+                    , { des: "Dolar", val: "dolar", default: false }
+                    , { des: "Fecha", val: "fecha", default: false }
+                    , { des: "Descripcion", val: "descripcion", default: false }
                 ];
 
                 $scope.ordersc = [
-                    {des: "Monto", val: "monto", default:"selected"}
-                    , {des: "Dolar", val: "dolar", default:false}
-                    , {des: "Fecha", val: "fecha", default:false}
-                    , {des: "Total", val: "total", default:false}
-                    , {des: "Resto", val: "resto", default:false}
-                    , {des: "Descripcion", val: "descripcion", default:false}
+                    { des: "Monto", val: "monto", default: "selected" }
+                    , { des: "Dolar", val: "dolar", default: false }
+                    , { des: "Fecha", val: "fecha", default: false }
+                    , { des: "Total", val: "total", default: false }
+                    , { des: "Resto", val: "resto", default: false }
+                    , { des: "Descripcion", val: "descripcion", default: false }
                 ];
 
                 $scope.ordersp = [
-                    {des: "Monto", val: "customSort", default:"selected"}
-                    , {des: "Dolar", val: "dolar", default:false}
-                    , {des: "Fecha", val: "fecha", default:false}
-                    , {des: "Total", val: "total", default:false}
-                    , {des: "Resto", val: "resto", default:false}
-                    , {des: "Descripcion", val: "descripcion", default:false}
+                    { des: "Monto", val: "customSort", default: "selected" }
+                    , { des: "Dolar", val: "dolar", default: false }
+                    , { des: "Fecha", val: "fecha", default: false }
+                    , { des: "Total", val: "total", default: false }
+                    , { des: "Resto", val: "resto", default: false }
+                    , { des: "Descripcion", val: "descripcion", default: false }
                 ];
 
             });
@@ -324,10 +408,11 @@
                     content.style.maxHeight = null;
                 } else {
                     this.classList.toggle("active");
-                    content.style.maxHeight = content.scrollHeight + "px";
+                    content.style.maxHeight = content.scrollHeight * 10 + "px";
                 }
             });
         }
     </script>
-    </body>
-    </html>
+</body>
+
+</html>

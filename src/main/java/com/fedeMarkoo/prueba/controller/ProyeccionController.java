@@ -4,133 +4,305 @@ import com.fedeMarkoo.prueba.model.Cuota;
 import com.fedeMarkoo.prueba.model.Periodo;
 import com.fedeMarkoo.prueba.model.PeriodoHistorico;
 import com.fedeMarkoo.prueba.model.ProyeccionHistorico;
+import com.fedeMarkoo.prueba.model.Registro;
+import com.fedeMarkoo.prueba.service.IMongoDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
 
+@Component
 public class ProyeccionController {
 
-    public static void addAnteriores(ProyeccionHistorico historicos) {
-        PeriodoHistorico perTemp = new PeriodoHistorico();
-        perTemp.setDescript("Restos del mes anterior");
-        perTemp.setType(0);
+	private static IMongoDAO dao;
 
-        Double[] amounts = new Double[9];
-        Double ant = 0.0;
-        int index = 0;
-        for (Double amount :
-                historicos.getAmounts()) {
-            amounts[index++] = ant;
-            ant += amount;
-        }
+	public static void addGastosTotal(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp;
+		int index;
+		Double[] amounts;
 
-        perTemp.setAmount(amounts);
-        historicos.add(perTemp);
-    }
+		perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Gastos Total de Tarjetas");
+		perTemp.setType(2);
+		amounts = new Double[9];
 
-    public static void addResto(ProyeccionHistorico historicos) {
-        PeriodoHistorico perTemp = new PeriodoHistorico();
-        perTemp.setDescript("Restos del mes en curso");
-        perTemp.setType(2);
+		double promedioDeCompras = 0;
+		index = 4 - defase;
+		for (Periodo p : periodo) {
+			if (index < 0)
+				break;
+			if (index < 9)
+				amounts[index] = p.getMovimientos().stream().mapToDouble(Registro::getMonto)
+						.reduce(0, Double::sum);
+			index--;
+		}
+		int cant = 0;
+		for (Periodo p : periodo) {
+			double compraAmount = p.getMovimientos().stream().filter(mov -> mov.getTipo().equals("Compra")).mapToDouble(Registro::getMonto)
+					.reduce(0, Double::sum);
+			cant++;
+			promedioDeCompras += compraAmount;
+		}
+		promedioDeCompras /= cant;
+		Periodo p = periodo.get(0);
+		List<Cuota> cuotas = p.getCuotas();
+		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
+			int finalI = i;
+			amounts[i] =
+					promedioDeCompras + cuotas.stream().filter(a -> a.getResto() > finalI - 5 + defase).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0,
+							Double::sum);
+		}
 
-        Double[] amounts = new Double[9];
-        int index = 0;
-        for (Double amount :
-                historicos.getAmounts()) {
-            amounts[index++] = amount;
-        }
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
 
-        perTemp.setAmount(amounts);
-        historicos.add(perTemp);
-    }
+	public static void addAnteriores(ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Restos del mes anterior");
+		perTemp.setType(0);
 
-    public static void addCompras(List<Periodo> periodo, ProyeccionHistorico historicos) {
-        PeriodoHistorico perTemp;
-        int index;
-        Double[] amounts;
+		Double[] amounts = new Double[9];
+		Double ant = 0.0;
+		int index = 0;
+		for (Double amount :
+				historicos.getAmounts()) {
+			amounts[index++] = ant == 0 ? null : ant;
+			ant += amount;
+		}
 
-        perTemp = new PeriodoHistorico();
-        perTemp.setDescript("Gastos en compra");
-        perTemp.setType(1);
-        index = 4;
-        amounts = new Double[9];
-        for (Periodo p : periodo) {
-            amounts[index--] =
-                    p.getMovimientos().stream().filter(mov -> mov.getTipo().equals("Compra")).mapToDouble(ob -> (ob.getMonto()))
-                            .reduce(0, (a, b) -> a + b);
-            if (index < 0) {
-                break;
-            }
-        }
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
 
-        int c = 0;
-        double monto = 0;
-        for (Double d :
-                Arrays.asList(amounts).subList(0,4)) {
-            if (d != null) {
-                c++;
-                monto += d;
-            }
-        }
-        monto /= c;
-        for (index = 5; index < 9; index++) {
-            amounts[index] = monto;
-        }
-        perTemp.setAmount(amounts);
-        historicos.add(perTemp);
-    }
+	public static void addResto(ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Restos del mes en curso");
+		perTemp.setType(2);
 
-    public static void addCuotas(List<Periodo> periodo, ProyeccionHistorico historicos) {
-        PeriodoHistorico perTemp;
-        int index;
-        Double[] amounts;
+		Double[] amounts = new Double[9];
+		int index = 0;
+		for (Double amount :
+				historicos.getAmounts()) {
+			amounts[index++] = amount == 0 ? null : amount;
+		}
 
-        perTemp = new PeriodoHistorico();
-        perTemp.setDescript("Gastos en cuotas");
-        perTemp.setType(1);
-        index = 4;
-        amounts = new Double[9];
-        for (Periodo p : periodo) {
-            amounts[index--] =
-                    p.getMovimientos().stream().filter(mov -> mov.getTipo().equals("Cuota")).mapToDouble(ob -> (ob.getMonto()))
-                            .reduce(0, (a, b) -> a + b)
-                            + p.getMovimientos().stream().filter(mov -> mov.getTipo().equals("Cuota Final")).mapToDouble(ob -> (ob.getMonto()))
-                            .reduce(0, (a, b) -> a + b);
-            if (index < 0)
-                break;
-        }
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
 
-        Periodo p = periodo.get(0);
-        List<Cuota> cuotas = p.getCuotas();
-        for (int i = 5; i < 9; i++) {
-            int finalI = i;
-            amounts[i] = cuotas.stream().filter(a -> a.getResto() > finalI - 4).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0, (a, b) -> a + b);
-        }
+	public static void addCompras(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp;
+		int index;
+		Double[] amounts;
 
-        perTemp.setAmount(amounts);
-        historicos.add(perTemp);
-    }
+		perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Gastos en compra");
+		perTemp.setType(1);
+		index = 4 - defase;
+		amounts = new Double[9];
+		double monto = 0;
+		int cant = 0;
+		for (Periodo p : periodo) {
+			double compraAmount = p.getMovimientos().stream().filter(mov -> mov.getTipo().equals("Compra")).mapToDouble(Registro::getMonto)
+					.reduce(0, Double::sum);
+			cant++;
+			monto += compraAmount;
+			if (index < 0) {
+				historicos.getAmounts()[0] -= compraAmount;
+			} else if (index < 9) {
+				amounts[index] = compraAmount;
+			}
+			index--;
+		}
+		monto /= cant;
+		for (index = 5 - defase; index < 9; index++) {
+			if (index < 0) {
+				historicos.getAmounts()[0] -= monto;
+			} else if (index < 9)
+				amounts[index] = monto;
+		}
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
 
-    public static void addSueldo(List<Periodo> periodo, ProyeccionHistorico historicos) {
-        PeriodoHistorico perTemp = new PeriodoHistorico();
-        perTemp.setDescript("Sueldo");
-        perTemp.setType(0);
-        int index = 4;
-        Double[] amounts = new Double[9];
-        for (Periodo p : periodo) {
-            amounts[index--] = Double.valueOf(p.getSueldo());
-            if (index < 0)
-                break;
-        }
+	public static double getPromedioDeCompras(Double[] amounts) {
+		int c = 0;
+		double monto = 0;
+		for (Double d :
+				Arrays.asList(amounts).subList(0, 4)) {
+			if (d != null) {
+				c++;
+				monto += d;
+			}
+		}
+		monto /= c;
+		return monto;
+	}
 
-        Periodo p = periodo.get(0);
-        for (int i = 5; i < 9; i++) {
-            int finalI = i;
-            amounts[i] = 77000.0;
-        }
+	public static void addCuotas(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp;
+		int index;
+		Double[] amounts;
 
-        perTemp.setAmount(amounts);
-        historicos.add(perTemp);
-    }
+		perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Gastos en cuotas");
+		perTemp.setType(1);
+		index = 4 - defase;
+		amounts = new Double[9];
+		for (Periodo p : periodo) {
+			double cuotaAmount = p.getMovimientos().stream().filter(mov -> !mov.getTipo().equals("Compra")).mapToDouble(Registro::getMonto)
+					.reduce(0, Double::sum);
+			if (index < 0) {
+				historicos.getAmounts()[0] -= cuotaAmount;
+			} else if (index < 9)
+				amounts[index] = cuotaAmount==0?null:cuotaAmount;
+			index--;
+		}
+
+
+		Periodo p = periodo.get(0);
+		List<Cuota> cuotas = p.getCuotas();
+		for (int i = 5 - defase; i < 9; i++) {
+			int finalI = i;
+			double cuotaAmount = cuotas.stream().filter(a -> a.getResto() > finalI - 5 + defase).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0,
+					Double::sum);
+			if (i < 0)
+				historicos.getAmounts()[0] -= cuotaAmount;
+			else
+				amounts[i] = cuotaAmount==0?null:cuotaAmount;
+		}
+
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
+
+	public static void addCuotasLiquidar(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		PeriodoHistorico perTemp;
+		int index;
+		Double[] amounts;
+
+		perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Liquidacion Cuotas");
+		perTemp.setType(2);
+		index = 4 - defase;
+		amounts = new Double[9];
+
+
+		Periodo p = periodo.get(0);
+		List<Cuota> cuotas = p.getCuotas();
+		for (int i = 5 - defase; i < 9; i++) {
+			if (i >= 0) {
+				int finalI = i;
+				int temp = finalI - 4 + defase;
+				Stream<Cuota> filtrado = cuotas.stream().filter(a -> a.getResto() > temp);
+				DoubleStream doubleStream = filtrado.mapToDouble(a -> a.getMonto() / a.getResto() * (a.getResto() - temp));
+				double amount = doubleStream.reduce(0, Double::sum);
+				amounts[i] = amount==0?null:amount;
+			}
+		}
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
+
+	public static void addSueldo(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		Double ultimoSueldo = periodo.get(0).getSueldo();
+
+		PeriodoHistorico perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Sueldo");
+		perTemp.setType(0);
+		int index = 4 - defase;
+		Double[] amounts = new Double[9];
+		for (Periodo p : periodo) {
+			Double sueldo = p.getSueldo();
+			if (index < 0) {
+				historicos.getAmounts()[0] += sueldo;
+			} else if (index < 9) {
+				amounts[index] = sueldo;
+			}
+			index--;
+		}
+
+		for (int i = 5 - defase; i < 0; i++) {
+			historicos.getAmounts()[0] += ultimoSueldo;
+		}
+
+		Periodo p = periodo.get(0);
+		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
+			amounts[i] = ultimoSueldo;
+		}
+
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
+
+	public static int getMonthsDifference(String periodo) {
+		try {
+			SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
+			YearMonth m1 = YearMonth.from(dateFormat.parse(periodo).toInstant().atZone(ZoneOffset.UTC));
+
+			YearMonth m2 = YearMonth.from(Instant.now().atZone(ZoneOffset.UTC));
+
+			return (int) (m1.until(m2, ChronoUnit.MONTHS) - m1.until(m2, ChronoUnit.YEARS));
+		} catch (ParseException e) {
+			return 0;
+		}
+	}
+
+	public static int getMonthsDifference(String periodo1, String periodo2) {
+		try {
+			SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
+			YearMonth m1 = YearMonth.from(dateFormat.parse(periodo1).toInstant().atZone(ZoneOffset.UTC));
+
+			YearMonth m2 = YearMonth.from(dateFormat.parse(periodo2).toInstant().atZone(ZoneOffset.UTC));
+
+			return (int) (m1.until(m2, ChronoUnit.MONTHS) - m1.until(m2, ChronoUnit.YEARS));
+		} catch (ParseException e) {
+			return 0;
+		}
+	}
+
+	public static void addPeriodosHistoricos(ProyeccionHistorico historicos, Integer defase) {
+		List<PeriodoHistorico> periodoHistoricos = dao.getPeriodosHistoricos();
+		periodoHistoricos.forEach(perTemp -> {
+			Integer editableType = perTemp.getEditableType();
+			editableType = editableType == null ? 1 : editableType;
+			perTemp.setEditableType(editableType);
+			int dif = getMonthsDifference(perTemp.getPeriodo()) + defase;
+			Double[] temp = perTemp.getAmount();
+			Double[] amounts = new Double[9];
+			for (int i = Math.min(4 - dif, 0); i < temp.length + 4 - dif; i++) {
+				if (i >= 4 - dif && i >= 0 && i - 4 + dif < 9 & i < 9)
+					amounts[i] = temp[i - 4 + dif];
+				else if (i < 0) {
+					if (temp[i - 4 + dif] != null)
+						switch (perTemp.getType()) {
+							case 0:
+								historicos.getAmounts()[0] += temp[i - 4 + dif];
+								break;
+							case 1:
+								historicos.getAmounts()[0] -= temp[i - 4 + dif];
+								break;
+						}
+				}
+			}
+			perTemp.setAmount(amounts);
+		});
+		periodoHistoricos.forEach(historicos::add);
+	}
+
+	@Autowired
+	public void setDao(IMongoDAO dao) {
+		ProyeccionController.dao = dao;
+	}
 
 }

@@ -1,7 +1,6 @@
 package com.fedeMarkoo.prueba.service;
 
-import java.util.List;
-
+import com.fedeMarkoo.prueba.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -9,10 +8,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fedeMarkoo.prueba.model.Cuota;
-import com.fedeMarkoo.prueba.model.Movimiento;
-import com.fedeMarkoo.prueba.model.Periodo;
-import com.fedeMarkoo.prueba.model.Registro;
+import java.util.Comparator;
+import java.util.List;
 
 @Repository
 @Transactional
@@ -55,14 +52,12 @@ public class MongoDAO implements IMongoDAO {
 	public Periodo getPeriodo(String periodo) {
 		Criteria criteria = Criteria.where("periodo").is(periodo);
 		Query query = new Query().addCriteria(criteria);
-		Periodo result = BD.findOne(query, Periodo.class);
-		return result;
+		return BD.findOne(query, Periodo.class);
 	}
 
 	@Override
 	public void savePeriodo(Periodo periodo) {
 		BD.remove(periodo);
-
 		BD.save(periodo);
 	}
 
@@ -78,5 +73,25 @@ public class MongoDAO implements IMongoDAO {
 			return o2.getPeriodo().compareTo(o1.getPeriodo());
 		});
 		return result;
+	}
+
+	@Override
+	public List<PeriodoHistorico> getPeriodosHistoricos() {
+		List<PeriodoHistorico> list = BD.findAll(PeriodoHistorico.class);
+		list.sort(Comparator.comparing(PeriodoHistorico::getDecrypt));
+		return list;
+	}
+
+	@Override
+	public void savePeriodoHistorico(PeriodoHistorico perTemp) {
+		BD.remove(perTemp);
+		BD.save(perTemp);
+	}
+
+	@Override
+	public PeriodoHistorico getPeriodosHistorico(String decrypt) {
+		Criteria criteria = Criteria.where("decrypt").is(decrypt);
+		Query query = new Query().addCriteria(criteria);
+		return BD.findOne(query, PeriodoHistorico.class);
 	}
 }
