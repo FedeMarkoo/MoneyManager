@@ -29,4 +29,6 @@ public interface IMongoDAO {
     void savePeriodoHistorico(PeriodoHistorico perTemp);
 
     PeriodoHistorico getPeriodosHistorico(String decrypt);
+
+    void removePeriodoHistorico(String periodo);
 }

@@ -94,4 +94,11 @@ public class MongoDAO implements IMongoDAO {
 		Query query = new Query().addCriteria(criteria);
 		return BD.findOne(query, PeriodoHistorico.class);
 	}
+
+	@Override
+	public void removePeriodoHistorico(String periodo) {
+		Criteria criteria = Criteria.where("decrypt").is(periodo);
+		Query query = new Query().addCriteria(criteria);
+		BD.findAndRemove(query, PeriodoHistorico.class);
+	}
 }

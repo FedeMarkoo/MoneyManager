@@ -245,6 +245,37 @@ public class ProyeccionController {
 		historicos.add(perTemp);
 	}
 
+	public static void addAguinaldo(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		Double ultimoSueldo = periodo.get(0).getSueldo();
+
+		PeriodoHistorico perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Sueldo");
+		perTemp.setType(0);
+		int index = 4 - defase;
+		Double[] amounts = new Double[9];
+		for (Periodo p : periodo) {
+			Double sueldo = p.getSueldo();
+			if (index < 0) {
+				historicos.getAmounts()[0] += sueldo;
+			} else if (index < 9) {
+				amounts[index] = sueldo;
+			}
+			index--;
+		}
+
+		for (int i = 5 - defase; i < 0; i++) {
+			historicos.getAmounts()[0] += ultimoSueldo;
+		}
+
+		Periodo p = periodo.get(0);
+		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
+			amounts[i] = ultimoSueldo;
+		}
+
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
+
 	public static int getMonthsDifference(String periodo) {
 		try {
 			SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
@@ -281,7 +312,7 @@ public class ProyeccionController {
 			Double[] temp = perTemp.getAmount();
 			Double[] amounts = new Double[9];
 			for (int i = Math.min(4 - dif, 0); i < temp.length + 4 - dif; i++) {
-				if (i >= 4 - dif && i >= 0 && i - 4 + dif < 9 & i < 9)
+				if (i >= 4 - dif && i >= 0 && i - 4 + dif < temp.length && i < 9)
 					amounts[i] = temp[i - 4 + dif];
 				else if (i < 0) {
 					if (temp[i - 4 + dif] != null)

@@ -181,14 +181,16 @@
                             {{getMonth($index-4)}} {{x | currency}}</th>
                     </tr>
                     <tr ng-repeat="x in proyeccionHistorico['historicos']" ng-model="hist">
-                        <td>{{x.decrypt}}</td>
+                        <td>{{x.decrypt}}<i class="far fa-trash-alt" ng-click="removeHist(x.decrypt)"
+                                ng-if="x.editableType == 1 ||  x.editableType == 2"></i>
+                        </td>
                         <td ng-repeat="monto in x.amount track by $index" ng-model="qwe">{{monto | currency}}
                             <i class="far fa-edit"
                                 ng-if="monto != null && (x.editableType == 1 ||  x.editableType == 2) && $index + defase >= 3"
-                                ng-click="edit(x,$index)"></i>
+                                ng-click="edit(x,$index,$parent.$index)"></i>
                             <i class="fas fa-plus"
                                 ng-if="monto == null && x.editableType == 2 && ($index + defase == 4 || $index + defase == 3)"
-                                ng-click="edit(x,$index)"></i>
+                                ng-click="edit(x,$index,$parent.$index); contenteditable='true'"></i>
                         </td>
                     </tr>
                     <tr ng-repeat="x in proyeccionHistorico['newRow']" ng-model="hist" id="nueva">
@@ -199,9 +201,6 @@
                     </tr>
                     </tr>
                 </table>
-
-                <input type="number" ng-model="editedItem.amount[editedItem.index]" />
-                <button ng-click="saveModif()">save</button>
             </div>
         </div>
     </div>
@@ -211,6 +210,14 @@
             function ($scope, $http) {
                 $scope.defase = 0;
 
+                $scope.removeHist = function (desc) {
+                    $http.delete("movs/removeHistorico/" + desc).then(function () {
+                        $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
+                            $scope.proyeccionHistorico = response.data;
+                        });
+                    });
+                }
+
                 $scope.change = function (a) {
                     $scope.defase += a;
 
@@ -219,9 +226,20 @@
                     });
                 }
 
-                $scope.edit = function (item, index) {
+                $scope.edit = function (item, index, parentIndex) {
                     $scope.editedItem = angular.copy(item);
                     $scope.editedItem.index = index;
+                    var temp = document.querySelector("body > div > div > div:nth-child(10) > table > tbody > tr:nth-child(" + (this.$parent.$parent.$index + 2) + ") > td:nth-child(" + (this.$parent.$index + 2) + ")");
+                    temp.contentEditable = "true";
+                    temp.innerText = this.monto;
+                    temp.onkeyup = function (a) {
+                        asd = this;
+
+                        $scope.editedItem.amount[$scope.editedItem.index] = asd.innerText.trim();
+                    }
+                    temp.onblur = function (a) {
+                        $scope.saveModif();
+                    }
                 };
 
                 $scope.addRow = function () {
@@ -242,14 +260,24 @@
                     });
                     let decrypt = arr.splice(0, 1)[0];
                     let amounts = arr.splice(0, 9);
+                    let tipo = 1;
                     for (let i = 0; i < amounts.length; i++) {
                         if (amounts[i] == "")
                             amounts[i] = null;
+                        else if (amounts[i].split("x")) {
+                            if (amounts[i].split("x")[0] < 0) {
+                                tipo = 1;
+                            }
+                            for (let q = amounts[i].split("x")[1] - 1; q >= 0; q--) {
+                                amounts[i + q] = amounts[i].split("x")[0];
+                            }
+                        }
                     }
 
                     let hist = new Object();
                     hist['decrypt'] = decrypt;
                     hist['amount'] = amounts;
+                    hist['type'] = tipo;
 
                     $http.post("movs/newHistorico", hist).then(function () {
                         $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {

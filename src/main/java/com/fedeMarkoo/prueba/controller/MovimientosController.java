@@ -71,7 +71,6 @@ public class MovimientosController {
 		return new ResponseEntity<>(historicos, HttpStatus.OK);
 	}
 
-
 	@PostMapping("/save")
 	@Deprecated
 	public void save(@RequestBody String data, HttpServletRequest request) {
@@ -225,5 +224,11 @@ public class MovimientosController {
 
 	private void savePeriodo() {
 		mongo.savePeriodo(MovimientosController.periodo);
+	}
+
+	@DeleteMapping("/removeHistorico/{descript}")
+	public void removePeriodo(@PathVariable String descript){
+
+		mongo.removePeriodoHistorico(descript.replaceAll(" \\(\\$[0-9\\.\\,]+\\)", ""));
 	}
 }
