@@ -12,8 +12,9 @@
     <title>Control de guita</title>
     <script src="https://kit.fontawesome.com/a7e4de9cfc.js" crossorigin="anonymous"></script>
     <link href="css/Style.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.16/angular-filter.js"></script>
     <style>
         fas {
             text-align: right;
@@ -64,7 +65,7 @@
                     </label>
                     <input type="checkbox" ng-model="descCompra" ng-init="descCompra=true">
                 </p>
-                <table>
+                <table style="float: left;">
                     <tr>
                         <th>Fecha</th>
                         <th>Descripcion</th>
@@ -73,6 +74,7 @@
                         <th>Origen</th>
                         <th>Monto {{ getTotalCompra() | currency}}</th>
                         <th>Dolar</th>
+                        <th>Clasificacion</th>
                     </tr>
                     <tr ng-repeat="x in compras=(movs | filter : {$ : fcom}) | orderBy: listForOrder: descCompra">
                         <td>{{x.fecha | date:'dd/MM/yyyy'}}</td>
@@ -82,6 +84,20 @@
                         <td>{{x.origen}}</td>
                         <td>{{x.monto | currency}}</td>
                         <td>{{x.dolar | currency}}</td>
+                        <td>
+                            <select ng-model="x.clasificacion" ng-options="b for b in clasificaciones track by b"
+                                ng-change="updateClasificaciones(x)"></select>
+                        </td>
+                    </tr>
+                </table>
+                <table style="float: left;">
+                    <tr>
+                        <th>Clasificaciones</th>
+                        <th>Monto</th>
+                    </tr>
+                    <tr ng-repeat="(clasificacion, montos) in movs | groupBy: 'clasificacion'">
+                        <td>{{clasificacion}}</td>
+                        <td>{{sumClasificaciones(montos) | currency}}</td>
                     </tr>
                 </table>
             </div>
@@ -206,9 +222,24 @@
     </div>
 
     <script>
-        angular.module('myApp', []).controller('movsCtrl',
+        angular.module('myApp', ['angular.filter']).controller('movsCtrl',
             function ($scope, $http) {
                 $scope.defase = 0;
+
+                $scope.sumClasificaciones = function (items) {
+                    return items
+                        .map(function (x) { return x.monto; })
+                        .reduce(function (a, b) { return a + b; });
+                };
+
+                $scope.updateClasificaciones = function (mov) {
+                    $http.put("movs/updateClasif", mov).then(function () {
+                        $http.get("movs/get").then(function (response) {
+                            $scope.movs = response.data.movimientos;
+                            $scope.cuota = response.data.cuotas;
+                        });
+                    });
+                }
 
                 $scope.removeHist = function (desc) {
                     $http.delete("movs/removeHistorico/" + desc).then(function () {
@@ -388,6 +419,18 @@
                 $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
                     $scope.proyeccionHistorico = response.data;
                 });
+
+                $scope.clasificaciones = [
+                    "Comida",
+                    "Ferreteria",
+                    "Construccion",
+                    "Estudio",
+                    "Ahorros",
+                    "Bazar",
+                    "Auto",
+                    "Internet",
+                    "Farmacia"
+                ];
 
                 $scope.orders = [
                     { des: "Tipo", val: "tipo", default: " ng-selected=\"{{q.default}}\"" }

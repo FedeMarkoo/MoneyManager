@@ -16,6 +16,7 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -26,6 +27,7 @@ public class ProyeccionController {
 	private static IMongoDAO dao;
 
 	public static void addGastosTotal(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
 		PeriodoHistorico perTemp;
 		int index;
 		Double[] amounts;
@@ -57,9 +59,10 @@ public class ProyeccionController {
 		List<Cuota> cuotas = p.getCuotas();
 		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
 			int finalI = i;
-			amounts[i] =
-					promedioDeCompras + cuotas.stream().filter(a -> a.getResto() > finalI - 5 + defase).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0,
-							Double::sum);
+			Integer finalDefase = defase;
+			Stream<Cuota> filtered = cuotas.stream().filter(a -> a.getResto() > finalI - 5 + finalDefase);
+			DoubleStream map = filtered.mapToDouble(a -> a.getMonto() / a.getResto());
+			amounts[i] = promedioDeCompras + map.reduce(0, Double::sum);
 		}
 
 		perTemp.setAmount(amounts);
@@ -101,6 +104,7 @@ public class ProyeccionController {
 	}
 
 	public static void addCompras(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
 		PeriodoHistorico perTemp;
 		int index;
 		Double[] amounts;
@@ -110,6 +114,7 @@ public class ProyeccionController {
 		perTemp.setType(1);
 		index = 4 - defase;
 		amounts = new Double[9];
+
 		double monto = 0;
 		int cant = 0;
 		for (Periodo p : periodo) {
@@ -150,6 +155,7 @@ public class ProyeccionController {
 	}
 
 	public static void addCuotas(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
 		PeriodoHistorico perTemp;
 		int index;
 		Double[] amounts;
@@ -165,7 +171,7 @@ public class ProyeccionController {
 			if (index < 0) {
 				historicos.getAmounts()[0] -= cuotaAmount;
 			} else if (index < 9)
-				amounts[index] = cuotaAmount==0?null:cuotaAmount;
+				amounts[index] = cuotaAmount == 0 ? null : cuotaAmount;
 			index--;
 		}
 
@@ -174,12 +180,13 @@ public class ProyeccionController {
 		List<Cuota> cuotas = p.getCuotas();
 		for (int i = 5 - defase; i < 9; i++) {
 			int finalI = i;
-			double cuotaAmount = cuotas.stream().filter(a -> a.getResto() > finalI - 5 + defase).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0,
+			Integer finalDefase = defase;
+			double cuotaAmount = cuotas.stream().filter(a -> a.getResto() > finalI - 5 + finalDefase).mapToDouble(a -> a.getMonto() / a.getResto()).reduce(0,
 					Double::sum);
 			if (i < 0)
 				historicos.getAmounts()[0] -= cuotaAmount;
 			else
-				amounts[i] = cuotaAmount==0?null:cuotaAmount;
+				amounts[i] = cuotaAmount == 0 ? null : cuotaAmount;
 		}
 
 		perTemp.setAmount(amounts);
@@ -187,6 +194,7 @@ public class ProyeccionController {
 	}
 
 	public static void addCuotasLiquidar(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
 		PeriodoHistorico perTemp;
 		int index;
 		Double[] amounts;
@@ -207,7 +215,7 @@ public class ProyeccionController {
 				Stream<Cuota> filtrado = cuotas.stream().filter(a -> a.getResto() > temp);
 				DoubleStream doubleStream = filtrado.mapToDouble(a -> a.getMonto() / a.getResto() * (a.getResto() - temp));
 				double amount = doubleStream.reduce(0, Double::sum);
-				amounts[i] = amount==0?null:amount;
+				amounts[i] = amount == 0 ? null : amount;
 			}
 		}
 		perTemp.setAmount(amounts);
@@ -215,7 +223,20 @@ public class ProyeccionController {
 	}
 
 	public static void addSueldo(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
-		Double ultimoSueldo = periodo.get(0).getSueldo();
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
+		int mesesHastaRevision = 0;
+		int cantRevisiones = 0;
+		Periodo ptemp = periodo.get(0);
+		Double ultimoSueldo = ptemp.getSueldo();
+		SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
+		try {
+			Date date = dateFormat.parse(ptemp.getPeriodo());
+			YearMonth m1 = YearMonth.from(date.toInstant().atZone(ZoneOffset.UTC));
+			mesesHastaRevision = m1.getMonth().getValue();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		PeriodoHistorico perTemp = new PeriodoHistorico();
 		perTemp.setDecrypt("Sueldo");
@@ -233,12 +254,26 @@ public class ProyeccionController {
 		}
 
 		for (int i = 5 - defase; i < 0; i++) {
-			historicos.getAmounts()[0] += ultimoSueldo;
+			if (mesesHastaRevision == 3) cantRevisiones++;
+			else if (mesesHastaRevision == 9) {
+				cantRevisiones++;
+			} else if (mesesHastaRevision == 12)
+				mesesHastaRevision = 0;
+
+			historicos.getAmounts()[0] += ultimoSueldo * (Math.pow(1.15, cantRevisiones));
+			mesesHastaRevision++;
 		}
 
 		Periodo p = periodo.get(0);
 		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
-			amounts[i] = ultimoSueldo;
+			if (mesesHastaRevision == 3) cantRevisiones++;
+			else if (mesesHastaRevision == 9) {
+				cantRevisiones++;
+			} else if (mesesHastaRevision == 12)
+				mesesHastaRevision = 0;
+
+			amounts[i] = ultimoSueldo * (Math.pow(1.15, cantRevisiones));
+			mesesHastaRevision++;
 		}
 
 		perTemp.setAmount(amounts);
@@ -246,8 +281,19 @@ public class ProyeccionController {
 	}
 
 	public static void addAguinaldo(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
-		Double ultimoSueldo = periodo.get(0).getSueldo();
+		int mesesHastaRevision = 0;
+		int cantRevisiones = 0;
+		Periodo ptemp = periodo.get(0);
+		Double ultimoSueldo = ptemp.getSueldo();
+		SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
+		try {
+			Date date = dateFormat.parse(ptemp.getPeriodo());
+			YearMonth m1 = YearMonth.from(date.toInstant().atZone(ZoneOffset.UTC));
+			mesesHastaRevision = m1.getMonth().getValue();
 
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		PeriodoHistorico perTemp = new PeriodoHistorico();
 		perTemp.setDecrypt("Sueldo");
 		perTemp.setType(0);
@@ -264,12 +310,23 @@ public class ProyeccionController {
 		}
 
 		for (int i = 5 - defase; i < 0; i++) {
-			historicos.getAmounts()[0] += ultimoSueldo;
+			if (mesesHastaRevision == 4) cantRevisiones++;
+			else if (mesesHastaRevision == 12) {
+				mesesHastaRevision = 0;
+				cantRevisiones++;
+			}
+			historicos.getAmounts()[0] += ultimoSueldo * (Math.pow(1.15, cantRevisiones));
+			mesesHastaRevision++;
 		}
 
-		Periodo p = periodo.get(0);
 		for (int i = Math.max(5 - defase, 0); i < 9; i++) {
-			amounts[i] = ultimoSueldo;
+			if (mesesHastaRevision == 4) cantRevisiones++;
+			else if (mesesHastaRevision == 12) {
+				mesesHastaRevision = 0;
+				cantRevisiones++;
+			}
+			amounts[i] = ultimoSueldo * (Math.pow(1.15, cantRevisiones));
+			mesesHastaRevision++;
 		}
 
 		perTemp.setAmount(amounts);

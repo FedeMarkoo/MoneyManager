@@ -1,11 +1,23 @@
 package com.fedeMarkoo.prueba.controller;
 
-import com.fedeMarkoo.prueba.model.*;
+import com.fedeMarkoo.prueba.model.Cuota;
+import com.fedeMarkoo.prueba.model.Movimiento;
+import com.fedeMarkoo.prueba.model.Periodo;
+import com.fedeMarkoo.prueba.model.PeriodoHistorico;
+import com.fedeMarkoo.prueba.model.ProyeccionHistorico;
 import com.fedeMarkoo.prueba.service.IMongoDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.text.SimpleDateFormat;
@@ -170,6 +182,8 @@ public class MovimientosController {
 						comprobante, new Double(m.group(4).replace(".", "").replace(",", ".")),
 						new Double(m.group(5).replace(".", "").replace(",", ".")));
 				if (!periodo.getMovimientos().contains(movimiento)) {
+					String clasi = mongo.getClasificacionByComprobante(movimiento.getComprobante());
+					movimiento.setClasificacion(clasi);
 					periodo.getMovimientos().add(movimiento);
 					System.out.println(movimiento);
 				}
@@ -222,13 +236,17 @@ public class MovimientosController {
 		mongo.savePeriodoHistorico(news);
 	}
 
+	@PutMapping("/updateClasif")
+	public void updateClasif(@RequestBody Movimiento mov) {
+		mongo.updateMovs(mov);
+	}
+
 	private void savePeriodo() {
 		mongo.savePeriodo(MovimientosController.periodo);
 	}
 
 	@DeleteMapping("/removeHistorico/{descript}")
-	public void removePeriodo(@PathVariable String descript){
-
+	public void removePeriodo(@PathVariable String descript) {
 		mongo.removePeriodoHistorico(descript.replaceAll(" \\(\\$[0-9\\.\\,]+\\)", ""));
 	}
 }

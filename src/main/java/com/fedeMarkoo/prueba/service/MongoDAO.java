@@ -1,15 +1,28 @@
 package com.fedeMarkoo.prueba.service;
 
-import com.fedeMarkoo.prueba.model.*;
+import com.fedeMarkoo.prueba.model.Cuota;
+import com.fedeMarkoo.prueba.model.Movimiento;
+import com.fedeMarkoo.prueba.model.Periodo;
+import com.fedeMarkoo.prueba.model.PeriodoHistorico;
+import com.fedeMarkoo.prueba.model.Registro;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+
+import static com.mongodb.client.model.Filters.elemMatch;
 
 @Repository
 @Transactional
@@ -100,5 +113,37 @@ public class MongoDAO implements IMongoDAO {
 		Criteria criteria = Criteria.where("decrypt").is(periodo);
 		Query query = new Query().addCriteria(criteria);
 		BD.findAndRemove(query, PeriodoHistorico.class);
+	}
+
+	@Override
+	public void updateMovs(Movimiento mov) {
+		Query query = new Query();
+		Update update = new Update();
+
+		query.addCriteria(Criteria.where("movimientos.comprobante").is(mov.getComprobante()));
+		update.set("movimientos.$.clasificacion", mov.getClasificacion());
+
+		BD.updateMulti(query, update, Periodo.class);
+
+	}
+
+	@Override
+	public String getClasificacionByComprobante(String comprobante) {
+
+		MongoCollection<Document> collection = BD.getCollection("Periodos");
+
+		Bson elemMatch = elemMatch("movimientos", Filters.eq("comprobante", comprobante));
+		Bson match = Projections.elemMatch("movimientos.clasificacion");
+
+		FindIterable<Document> find = collection.find(elemMatch);
+		FindIterable<Document> projection = find.projection(
+				Projections.fields(
+						match)
+		);
+
+		Document first = projection.first();
+		if (first == null) return "Otros";
+
+		return first.getList("movimientos", Document.class).get(0).getString("clasificacion");
 	}
 }

@@ -38,6 +38,10 @@ table tr:nth-child(even) {
 	background-color: #ffffff;
 }
 
+table tr:hover {
+	background-color: #d4d3d3;
+}
+
 .buttonhist {
 	color: gray;
     margin-left: 20%;

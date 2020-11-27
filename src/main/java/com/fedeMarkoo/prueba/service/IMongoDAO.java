@@ -1,6 +1,10 @@
 package com.fedeMarkoo.prueba.service;
 
-import com.fedeMarkoo.prueba.model.*;
+import com.fedeMarkoo.prueba.model.Cuota;
+import com.fedeMarkoo.prueba.model.Movimiento;
+import com.fedeMarkoo.prueba.model.Periodo;
+import com.fedeMarkoo.prueba.model.PeriodoHistorico;
+import com.fedeMarkoo.prueba.model.Registro;
 
 import java.util.List;
 
@@ -31,4 +35,8 @@ public interface IMongoDAO {
     PeriodoHistorico getPeriodosHistorico(String decrypt);
 
     void removePeriodoHistorico(String periodo);
+
+    void updateMovs(Movimiento mov);
+
+    String getClasificacionByComprobante(String comprobante);
 }
