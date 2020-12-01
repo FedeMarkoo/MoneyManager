@@ -2,7 +2,7 @@ package com.fedeMarkoo.prueba.model;
 
 import java.util.Date;
 
-public class Cuota extends Registro {
+public class Cuota extends Registro<Cuota> {
 
 	private Integer total;
 	private Integer resto;
@@ -10,9 +10,9 @@ public class Cuota extends Registro {
 	public Cuota() {
 		super();
 	}
-	
+
 	public Cuota(String descripcion, String origen, Date fecha, String comprobante, Double monto, Double dolar,
-			Integer total, Integer resto) {
+				 Integer total, Integer resto) {
 		super(descripcion, origen, fecha, comprobante, monto, dolar);
 		this.total = total;
 		this.resto = resto;

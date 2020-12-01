@@ -30,6 +30,10 @@ table, th, td {
 	padding: 5px;
 }
 
+table {
+    margin-left: 10px;
+}
+
 table tr:nth-child(odd) {
 	background-color: #f1f1f1;
 }

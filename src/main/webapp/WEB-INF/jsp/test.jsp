@@ -64,6 +64,7 @@
                         </select>
                     </label>
                     <input type="checkbox" ng-model="descCompra" ng-init="descCompra=true">
+                    <input type="text" ng-model="periodoS" placeholder="Periodo" ng-change="getPeriodo()">
                 </p>
                 <table style="float: left;">
                     <tr>
@@ -99,6 +100,14 @@
                         <td>{{clasificacion}}</td>
                         <td>{{sumClasificaciones(montos) | currency}}</td>
                     </tr>
+                    <tr>
+                        <th>Tipos</th>
+                        <th>Monto</th>
+                    </tr>
+                    <tr ng-repeat="(tipo, montos) in compras | groupBy: 'tipo'">
+                        <td>{{tipo}}</td>
+                        <td>{{sumClasificaciones(montos) | currency}}</td>
+                    </tr>
                 </table>
             </div>
 
@@ -110,6 +119,7 @@
                         <option ng-repeat="q in ordersc" value="{{q.val}}">{{q.des}}</option>
                     </select>
                     <input type="checkbox" ng-model="descCuota" ng-init="descCuota=true">
+                    <input type="text" ng-model="periodoS" placeholder="Periodo" ng-change="getPeriodo()">
                 </p>
                 <table>
                     <tr>
@@ -147,7 +157,7 @@
                     <option ng-repeat="q in ordersp" value="{{q.val}}">{{q.des}}</option>
                 </select>
                 <input type="checkbox" ng-model="descCuotaP" ng-init="descCuotaP=false">
-
+                <input type="text" ng-model="periodoS" placeholder="Periodo" ng-change="getPeriodo()">
                 <table>
                     <tr>
                         <th>Descripcion</th>
@@ -226,6 +236,23 @@
             function ($scope, $http) {
                 $scope.defase = 0;
 
+                function doGet() {
+                    if ($scope.periodoS && $scope.periodoS.match("\\d{2}-\\d{4}"))
+                        $http.get("movs/get/" + $scope.periodoS).then(function (response) {
+                            $scope.movs = response.data.movimientos;
+                            $scope.cuota = response.data.cuotas;
+                        });
+                    else if (!$scope.periodoS)
+                        $http.get("movs/get").then(function (response) {
+                            $scope.movs = response.data.movimientos;
+                            $scope.cuota = response.data.cuotas;
+                        });
+                }
+
+                $scope.getPeriodo = function () {
+                    doGet();
+                }
+
                 $scope.sumClasificaciones = function (items) {
                     return items
                         .map(function (x) { return x.monto; })
@@ -234,10 +261,7 @@
 
                 $scope.updateClasificaciones = function (mov) {
                     $http.put("movs/updateClasif", mov).then(function () {
-                        $http.get("movs/get").then(function (response) {
-                            $scope.movs = response.data.movimientos;
-                            $scope.cuota = response.data.cuotas;
-                        });
+                        doGet();
                     });
                 }
 
@@ -328,10 +352,8 @@
 
                 $scope.getTotalCuota = function () {
                     let total = 0;
-                    if (!$scope.cuota) return;
-                    $scope.cuota.filter(function (a) {
-                        return !$scope.fcuo || a.descripcion.toLowerCase().match($scope.fcuo.toLowerCase())
-                    }).forEach(function (a) {
+                    if (!$scope.cuotas) return;
+                    $scope.cuotas.forEach(function (a) {
                         total += a.monto;
                     });
                     return total;
@@ -339,8 +361,8 @@
 
                 $scope.getTotalCuota2 = function () {
                     let total = 0;
-                    if (!$scope.cuota) return;
-                    $scope.cuota.filter(function (a) {
+                    if (!$scope.cuotas) return;
+                    $scope.cuotas.filter(function (a) {
                         return !$scope.fcuo || a.descripcion.toLowerCase().match($scope.fcuo.toLowerCase())
                     }).forEach(function (a) {
                         total += a.monto / a.resto * a.total;
@@ -350,18 +372,18 @@
 
                 $scope.getTotalProximo = function () {
                     let total = 0;
-                    if (!$scope.cuota) return;
-                    $scope.cuota.filter(function (a) {
-                        return !$scope.fcuo || a.descripcion.toLowerCase().match($scope.fcuo.toLowerCase())
-                    }).forEach(function (a) {
-                        total += a.monto / a.resto;
+                    if (!$scope.cuotas) return;
+                    $scope.cuotas.forEach(function (a) {
+                        if (a.resto && a.monto)
+                            total += a.monto / a.resto;
                     });
                     return total;
                 }
 
+
                 $scope.showAmountMonth = function (monto, resto, columna) {
                     if (resto < columna) return null;
-
+                    if(!resto) return null;
                     return monto / resto;
                 }
 
@@ -371,11 +393,7 @@
                             $http.post("movs/visa2", $scope.load.visacuota).then(function () {
                                 $http.post("movs/master1", $scope.load.mastercompra).then(function () {
                                     $http.post("movs/master2", $scope.load.mastercuota).then(function () {
-
-                                        $http.get("movs/get").then(function (response) {
-                                            $scope.movs = response.data.movimientos;
-                                            $scope.cuota = response.data.cuotas;
-                                        });
+                                        doGet();
                                     })
                                 })
                             })
@@ -392,29 +410,23 @@
                 }
 
                 $scope.customSort = function (param) {
-                    return param.monto / param.resto;
+                    if (param.resto)
+                        return param.monto / param.resto;
+                    return -9999;
                 }
 
                 $scope.getMonthAmount = function (plus) {
                     let total = 0;
-                    if (!$scope.cuota) return;
+                    if (!$scope.cuotas) return;
                     $scope.cuota.filter(function (a) {
-                        return (!$scope.fcuoP || a.descripcion.toLowerCase().match($scope.fcuoP.toLowerCase())) && a.resto >= plus;
+                        return  a.resto >= plus;
                     }).forEach(function (a) {
                         total += a.monto / a.resto;
                     });
                     return total;
                 }
 
-                $scope.getAmountPro = function (index) {
-                    let amounts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-                    $scope.proyeccionHistorico[index];
-                }
-
-                $http.get("movs/get").then(function (response) {
-                    $scope.movs = response.data.movimientos;
-                    $scope.cuota = response.data.cuotas;
-                });
+                doGet();
 
                 $http.get("movs/getProyeccionHistorico/" + $scope.defase).then(function (response) {
                     $scope.proyeccionHistorico = response.data;

@@ -5,7 +5,7 @@ import com.fedeMarkoo.prueba.model.Movimiento;
 import com.fedeMarkoo.prueba.model.Periodo;
 import com.fedeMarkoo.prueba.model.PeriodoHistorico;
 import com.fedeMarkoo.prueba.model.ProyeccionHistorico;
-import com.fedeMarkoo.prueba.service.IMongoDAO;
+import com.fedeMarkoo.prueba.service.MongoDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +46,7 @@ public class MovimientosController {
 	private static Periodo periodo;
 	private final int counter = 0;
 	@Autowired
-	private IMongoDAO mongo;
+	private MongoDAO mongo;
 
 	@GetMapping("/get/{periodoS}")
 	public @ResponseBody

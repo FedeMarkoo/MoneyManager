@@ -1,11 +1,11 @@
 package com.fedeMarkoo.prueba.model;
 
-import java.util.Date;
-
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Document
-public abstract class Registro implements Comparable<Registro> {
+public abstract class Registro<T> implements Comparable<Registro> {
 
 	private String descripcion;
 	private String origen;

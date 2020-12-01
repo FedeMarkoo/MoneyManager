@@ -5,7 +5,7 @@ import com.fedeMarkoo.prueba.model.Periodo;
 import com.fedeMarkoo.prueba.model.PeriodoHistorico;
 import com.fedeMarkoo.prueba.model.ProyeccionHistorico;
 import com.fedeMarkoo.prueba.model.Registro;
-import com.fedeMarkoo.prueba.service.IMongoDAO;
+import com.fedeMarkoo.prueba.service.MongoDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 @Component
 public class ProyeccionController {
 
-	private static IMongoDAO dao;
+	private static MongoDAO dao;
 
 	public static void addGastosTotal(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
 		defase += getMonthsDifference(periodo.get(0).getPeriodo());
@@ -389,7 +389,7 @@ public class ProyeccionController {
 	}
 
 	@Autowired
-	public void setDao(IMongoDAO dao) {
+	public void setDao(MongoDAO dao) {
 		ProyeccionController.dao = dao;
 	}
 
