@@ -70,6 +70,7 @@ public class MovimientosController {
 
 
 		ProyeccionController.addSueldo(periodo, historicos, defase);
+		ProyeccionController.addAhorros(periodo, historicos, defase);
 
 		ProyeccionController.addGastosTotal(periodo, historicos, defase);
 		ProyeccionController.addCuotasLiquidar(periodo, historicos, defase);

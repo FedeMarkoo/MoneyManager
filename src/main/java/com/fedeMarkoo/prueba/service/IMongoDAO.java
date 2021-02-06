@@ -83,7 +83,10 @@ public class IMongoDAO implements MongoDAO {
 	public List<Periodo> getAllPeridosSorted() {
 		List<Periodo> result = BD.findAll(Periodo.class);
 		result.sort((o1, o2) -> {
-			return o2.getPeriodo().compareTo(o1.getPeriodo());
+			String[] periodo = o2.getPeriodo().split("-");
+			String[] periodo1 = o1.getPeriodo().split("-");
+			int compare = periodo[1].compareTo(periodo1[1]);
+			return compare == 0 ? periodo[0].compareTo(periodo1[1]) : compare;
 		});
 		return result;
 	}

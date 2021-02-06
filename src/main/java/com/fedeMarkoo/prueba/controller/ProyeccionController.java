@@ -280,6 +280,31 @@ public class ProyeccionController {
 		historicos.add(perTemp);
 	}
 
+	public static void addAhorros(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
+		defase += getMonthsDifference(periodo.get(0).getPeriodo());
+		PeriodoHistorico perTemp;
+		int index;
+		Double[] amounts;
+
+		perTemp = new PeriodoHistorico();
+		perTemp.setDecrypt("Ahorros");
+		perTemp.setType(0);
+		amounts = new Double[9];
+
+		index = 4 - defase;
+		for (Periodo p : periodo) {
+			if (index < 0)
+				break;
+			if (index < 9)
+				amounts[index] = p.getMovimientos().stream().filter(mov -> mov.getClasificacion().equals("Ahorros")).mapToDouble(Registro::getMonto)
+						.reduce(0, Double::sum);
+			index--;
+		}
+
+		perTemp.setAmount(amounts);
+		historicos.add(perTemp);
+	}
+
 	public static void addAguinaldo(List<Periodo> periodo, ProyeccionHistorico historicos, Integer defase) {
 		int mesesHastaRevision = 0;
 		int cantRevisiones = 0;
