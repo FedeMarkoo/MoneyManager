@@ -1,10 +1,6 @@
 package com.fedeMarkoo.prueba.controller;
 
-import com.fedeMarkoo.prueba.model.Cuota;
-import com.fedeMarkoo.prueba.model.Periodo;
-import com.fedeMarkoo.prueba.model.PeriodoHistorico;
-import com.fedeMarkoo.prueba.model.ProyeccionHistorico;
-import com.fedeMarkoo.prueba.model.Registro;
+import com.fedeMarkoo.prueba.model.*;
 import com.fedeMarkoo.prueba.service.MongoDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -288,7 +284,7 @@ public class ProyeccionController {
 
 		perTemp = new PeriodoHistorico();
 		perTemp.setDecrypt("Ahorros");
-		perTemp.setType(0);
+		perTemp.setType(2);
 		amounts = new Double[9];
 
 		index = 4 - defase;

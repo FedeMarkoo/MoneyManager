@@ -46,11 +46,37 @@
                 </div>
                 <div>
                     <label for="mastercuota">master cuota:</label> <input ng-model="load.mastercuota" placeholder="Text"
-                        type="text" />
+                                                                          type="text"/>
                 </div>
                 <div>
-                    <input type="submit" value="Submit" id="button-1" ng-click="sendAJAX()" />
+                    <input type="submit" value="Submit" id="button-1" ng-click="sendAJAX()"/>
                 </div>
+            </div>
+
+            <button class="collapsible">Movimientos de Crytos</button>
+            <div class="content">
+                <table>
+                    <tr>
+                        <th>Crypto</th>
+                        <th>Cantidad</th>
+                        <th>Valor en ARS</th>
+                        <th>Valor en BTC</th>
+                        <th>Ganancia en BTC</th>
+                        <th>Ganancia en ARS</th>
+                        <th>Valor de moneda en BTC</th>
+                        <th>Valor de moneda en ARS</th>
+                    </tr>
+                    <tr ng-repeat="c in crypt">
+                        <td>{{c.name | uppercase}}</td>
+                        <td>{{c.amount | number:8}}</td>
+                        <td>{{c.amountARS | currency}}</td>
+                        <td>{{c.amountBTC | number:8}}</td>
+                        <td>{{c.gananciaBTC | number:8}}</td>
+                        <td>{{c.gananciaARS | currency}}</td>
+                        <td>{{c.valueBTC | number:8}}</td>
+                        <td>{{c.valueARS | currency}}</td>
+                    </tr>
+                </table>
             </div>
 
             <button class="collapsible">Movimientos de Compras</button>
@@ -247,6 +273,9 @@
                             $scope.movs = response.data.movimientos;
                             $scope.cuota = response.data.cuotas;
                         });
+                    $http.get("bitso").then(function (response) {
+                        $scope.crypt = response.data;
+                    })
                 }
 
                 $scope.getPeriodo = function () {
@@ -255,8 +284,12 @@
 
                 $scope.sumClasificaciones = function (items) {
                     return items
-                        .map(function (x) { return x.monto; })
-                        .reduce(function (a, b) { return a + b; });
+                        .map(function (x) {
+                            return x.monto;
+                        })
+                        .reduce(function (a, b) {
+                            return a + b;
+                        });
                 };
 
                 $scope.updateClasificaciones = function (mov) {
@@ -329,7 +362,7 @@
                         }
                     }
 
-                    let hist = new Object();
+                    let hist = {};
                     hist['decrypt'] = decrypt;
                     hist['amount'] = amounts;
                     hist['type'] = tipo;
