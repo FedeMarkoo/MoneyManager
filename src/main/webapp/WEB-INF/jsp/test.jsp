@@ -261,8 +261,16 @@
 
 <script>
     angular.module('myApp', ['angular.filter']).controller('movsCtrl',
-        function ($scope, $http) {
+        function ($scope, $http, $timeout) {
             $scope.defase = 0;
+
+            $scope.getCrypto = function () {
+                $http.get("bitso").then(function (response) {
+                    $scope.crypt = response.data;
+
+                })
+                $timeout($scope.getCrypto, 10000);
+            }
 
             function doGet() {
                 if ($scope.periodoS && $scope.periodoS.match("\\d{2}-\\d{4}"))
@@ -275,10 +283,9 @@
                         $scope.movs = response.data.movimientos;
                         $scope.cuota = response.data.cuotas;
                     });
-                $http.get("bitso").then(function (response) {
-                    $scope.crypt = response.data;
-                })
+                $scope.getCrypto();
             }
+
 
             $scope.getPeriodo = function () {
                 doGet();
