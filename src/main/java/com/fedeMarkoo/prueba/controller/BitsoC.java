@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class BitsoC {
 
     public static final BigDecimal ZERO = BigDecimal.ZERO;
-    private final Bitso bitso = new Bitso("FWbgYSgovf", "e059508ac3460a0c95f600d67431c8e6", 5);
+    private final Bitso bitso = new Bitso("key", "secret", 5);
     private final Map<String, BigDecimal> valor = new HashMap<>();
 
     public static void addTotal(final List<Balance> balanceList) {
@@ -68,10 +68,14 @@ public class BitsoC {
 
     public void fillSomething(final Map<String, Balance> balanceList) {
         balanceList.forEach((s, balance) -> {
-            final BigDecimal btc = this.getValor(balance.getName(), "btc");
             final BigDecimal ars = this.getValor(balance.getName(), "ars");
+            BigDecimal btc = this.getValor(balance.getName(), "btc");
 
             balance.setValueARS(ars);
+            if (balance.getName().equals("ars")) {
+                btc = BigDecimal.ONE.divide(btc, 12, RoundingMode.FLOOR);
+            }
+
             balance.setValueBTC(btc);
 
             balance.setAmountBTC(balance.getAmount().multiply(btc));
@@ -106,8 +110,8 @@ public class BitsoC {
                 case "ars":
                 case "btc":
                 case "dai":
-                    balance.setGananciaBTC(BitsoC.ZERO);
                 case "eth":
+                    balance.setGananciaBTC(BitsoC.ZERO);
                     balance.setGananciaARS(BitsoC.ZERO);
                     break;
                 default:
