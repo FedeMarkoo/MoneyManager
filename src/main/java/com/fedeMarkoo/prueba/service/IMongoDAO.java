@@ -1,10 +1,6 @@
 package com.fedeMarkoo.prueba.service;
 
-import com.fedeMarkoo.prueba.model.Cuota;
-import com.fedeMarkoo.prueba.model.Movimiento;
-import com.fedeMarkoo.prueba.model.Periodo;
-import com.fedeMarkoo.prueba.model.PeriodoHistorico;
-import com.fedeMarkoo.prueba.model.Registro;
+import com.fedeMarkoo.prueba.model.*;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -28,125 +24,137 @@ import static com.mongodb.client.model.Filters.elemMatch;
 @Transactional
 public class IMongoDAO implements MongoDAO {
 
-	@Autowired
-	private MongoTemplate BD;
+    @Autowired
+    private MongoTemplate BD;
 
-	@Override
-	public List<Movimiento> getMovimientos() {
-		return BD.findAll(Movimiento.class);
-	}
+    @Override
+    public List<Movimiento> getMovimientos() {
+        return this.BD.findAll(Movimiento.class);
+    }
 
-	@Override
-	public List<Registro> getRegistros() {
-		return BD.findAll(Registro.class);
-	}
+    @Override
+    public List<Registro> getRegistros() {
+        return this.BD.findAll(Registro.class);
+    }
 
-	@Override
-	public List<Cuota> getCuotas() {
-		return BD.findAll(Cuota.class);
-	}
+    @Override
+    public List<Cuota> getCuotas() {
+        return this.BD.findAll(Cuota.class);
+    }
 
-	@Override
-	public void createRegistro(Registro registro) {
-		if (!this.existRegistro(registro)) {
-			BD.save(registro);
-		}
-	}
+    @Override
+    public void createRegistro(final Registro registro) {
+        if (!this.existRegistro(registro)) {
+            this.BD.save(registro);
+        }
+    }
 
-	@Override
-	public boolean existRegistro(Registro registro) {
-		Criteria criteria = Criteria.where("comprobante").is(registro.getComprobante());
-		criteria = criteria.and("periodo").is(null);
-		Query query = new Query().addCriteria(criteria);
-		return BD.exists(query, Registro.class);
-	}
+    @Override
+    public boolean existRegistro(final Registro registro) {
+        Criteria criteria = Criteria.where("comprobante").is(registro.getComprobante());
+        criteria = criteria.and("periodo").is(null);
+        final Query query = new Query().addCriteria(criteria);
+        return this.BD.exists(query, Registro.class);
+    }
 
-	@Override
-	public Periodo getPeriodo(String periodo) {
-		Criteria criteria = Criteria.where("periodo").is(periodo);
-		Query query = new Query().addCriteria(criteria);
-		return BD.findOne(query, Periodo.class);
-	}
+    @Override
+    public Periodo getPeriodo(final String periodo) {
+        final Criteria criteria = Criteria.where("periodo").is(periodo);
+        final Query query = new Query().addCriteria(criteria);
+        return this.BD.findOne(query, Periodo.class);
+    }
 
-	@Override
-	public void savePeriodo(Periodo periodo) {
-		BD.remove(periodo);
-		BD.save(periodo);
-	}
+    @Override
+    public void savePeriodo(final Periodo periodo) {
+        this.BD.remove(periodo);
+        this.BD.save(periodo);
+    }
 
-	@Override
-	public Periodo getPeriodoLast() {
-		return getAllPeridosSorted().get(0);
-	}
+    @Override
+    public Periodo getPeriodoLast() {
+        return this.getAllPeridosSorted().get(0);
+    }
 
-	@Override
-	public List<Periodo> getAllPeridosSorted() {
-		List<Periodo> result = BD.findAll(Periodo.class);
-		result.sort((o1, o2) -> {
-			String[] periodo = o2.getPeriodo().split("-");
-			String[] periodo1 = o1.getPeriodo().split("-");
-			int compare = periodo[1].compareTo(periodo1[1]);
-			return compare == 0 ? periodo[0].compareTo(periodo1[1]) : compare;
-		});
-		return result;
-	}
+    @Override
+    public List<Periodo> getAllPeridosSorted() {
+        final List<Periodo> result = this.BD.findAll(Periodo.class);
+        result.sort((o1, o2) -> {
+            final String[] periodo = o2.getPeriodo().split("-");
+            final String[] periodo1 = o1.getPeriodo().split("-");
+            final int compare = periodo[1].compareTo(periodo1[1]);
+            return compare == 0 ? periodo[0].compareTo(periodo1[1]) : compare;
+        });
+        return result;
+    }
 
-	@Override
-	public List<PeriodoHistorico> getPeriodosHistoricos() {
-		List<PeriodoHistorico> list = BD.findAll(PeriodoHistorico.class);
-		list.sort(Comparator.comparing(PeriodoHistorico::getDecrypt));
-		return list;
-	}
+    @Override
+    public List<PeriodoHistorico> getPeriodosHistoricos() {
+        final List<PeriodoHistorico> list = this.BD.findAll(PeriodoHistorico.class);
+        list.sort(Comparator.comparing(PeriodoHistorico::getDecrypt));
+        return list;
+    }
 
-	@Override
-	public void savePeriodoHistorico(PeriodoHistorico perTemp) {
-		BD.remove(perTemp);
-		BD.save(perTemp);
-	}
+    @Override
+    public void savePeriodoHistorico(final PeriodoHistorico perTemp) {
+        this.BD.remove(perTemp);
+        this.BD.save(perTemp);
+    }
 
-	@Override
-	public PeriodoHistorico getPeriodosHistorico(String decrypt) {
-		Criteria criteria = Criteria.where("decrypt").is(decrypt);
-		Query query = new Query().addCriteria(criteria);
-		return BD.findOne(query, PeriodoHistorico.class);
-	}
+    @Override
+    public PeriodoHistorico getPeriodosHistorico(final String decrypt) {
+        final Criteria criteria = Criteria.where("decrypt").is(decrypt);
+        final Query query = new Query().addCriteria(criteria);
+        return this.BD.findOne(query, PeriodoHistorico.class);
+    }
 
-	@Override
-	public void removePeriodoHistorico(String periodo) {
-		Criteria criteria = Criteria.where("decrypt").is(periodo);
-		Query query = new Query().addCriteria(criteria);
-		BD.findAndRemove(query, PeriodoHistorico.class);
-	}
+    @Override
+    public void removePeriodoHistorico(final String periodo) {
+        final Criteria criteria = Criteria.where("decrypt").is(periodo);
+        final Query query = new Query().addCriteria(criteria);
+        this.BD.findAndRemove(query, PeriodoHistorico.class);
+    }
 
-	@Override
-	public void updateMovs(Movimiento mov) {
-		Query query = new Query();
-		Update update = new Update();
+    @Override
+    public void updateMovs(final Movimiento mov) {
+        final Query query = new Query();
+        final Update update = new Update();
 
-		query.addCriteria(Criteria.where("movimientos.comprobante").is(mov.getComprobante()));
-		update.set("movimientos.$.clasificacion", mov.getClasificacion());
+        query.addCriteria(Criteria.where("movimientos.comprobante").is(mov.getComprobante()));
+        update.set("movimientos.$.clasificacion", mov.getClasificacion());
 
-		BD.updateMulti(query, update, Periodo.class);
+        this.BD.updateMulti(query, update, Periodo.class);
 
-	}
+    }
 
-	@Override
-	public String getClasificacionByComprobante(String comprobante) {
+    @Override
+    public String getClasificacionByComprobante(final String comprobante) {
 
-		MongoCollection<Document> collection = BD.getCollection("Periodos");
+        final MongoCollection<Document> collection = this.BD.getCollection("Periodos");
 
-		Bson elemMatch = elemMatch("movimientos", Filters.eq("comprobante", comprobante));
-		Bson match = Projections.elemMatch("movimientos.clasificacion");
+        final Bson elemMatch = elemMatch("movimientos", Filters.eq("comprobante", comprobante));
+        final Bson match = Projections.elemMatch("movimientos.clasificacion");
 
-		FindIterable<Document> find = collection.find(elemMatch);
-		FindIterable<Document> projection = find.projection(
-				Projections.fields(
-						match)
-		);
+        final FindIterable<Document> find = collection.find(elemMatch);
+        final FindIterable<Document> projection = find.projection(
+                Projections.fields(
+                        match)
+        );
 
-		Document first = projection.first();
-		if (first == null) return "Otros";
+        final Document first = projection.first();
+        if (first == null) {
+            return "Otros";
+        }
 
-		return first.getList("movimientos", Document.class).get(0).getString("clasificacion");
-	}
+        return first.getList("movimientos", Document.class).get(0).getString("clasificacion");
+    }
+
+    @Override
+    public void saveBitso(final BitsoData bitsoData) {
+        this.BD.save(bitsoData);
+    }
+
+    @Override
+    public List<BitsoData> getAllBitso() {
+        return this.BD.findAll(BitsoData.class);
+    }
 }

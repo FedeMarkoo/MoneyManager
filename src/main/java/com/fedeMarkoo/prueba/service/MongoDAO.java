@@ -1,10 +1,6 @@
 package com.fedeMarkoo.prueba.service;
 
-import com.fedeMarkoo.prueba.model.Cuota;
-import com.fedeMarkoo.prueba.model.Movimiento;
-import com.fedeMarkoo.prueba.model.Periodo;
-import com.fedeMarkoo.prueba.model.PeriodoHistorico;
-import com.fedeMarkoo.prueba.model.Registro;
+import com.fedeMarkoo.prueba.model.*;
 
 import java.util.List;
 
@@ -39,4 +35,9 @@ public interface MongoDAO {
     void updateMovs(Movimiento mov);
 
     String getClasificacionByComprobante(String comprobante);
+
+
+    void saveBitso(BitsoData bitsoData);
+
+    List<BitsoData> getAllBitso();
 }

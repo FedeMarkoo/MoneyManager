@@ -10,8 +10,10 @@ public class Balance {
     private BigDecimal amount;
     private BigDecimal amountARS;
     private BigDecimal amountBTC;
+    private BigDecimal amountUSD;
     private BigDecimal valueARS;
     private BigDecimal valueBTC;
+    private BigDecimal valueUSD;
     private BigDecimal gananciaBTC;
     private BigDecimal gananciaARS;
 

@@ -6,6 +6,9 @@ import com.bitso.BitsoOperation;
 import com.bitso.BitsoTicker;
 import com.bitso.exceptions.BitsoAPIException;
 import com.fedeMarkoo.prueba.model.Balance;
+import com.fedeMarkoo.prueba.model.BitsoData;
+import com.fedeMarkoo.prueba.service.MongoDAO;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,40 +16,125 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/bitso")
+@RequiredArgsConstructor
 public class BitsoC {
 
     public static final BigDecimal ZERO = BigDecimal.ZERO;
     private final Bitso bitso = new Bitso("key", "secret", 5);
     private final Map<String, BigDecimal> valor = new HashMap<>();
+    private final MongoDAO dao;
+    private BitsoData bitsoData;
 
-    public static void addTotal(final List<Balance> balanceList) {
-        final Balance total = new Balance();
-        total.setName("Total");
-        total.setAmountBTC(BigDecimal.ZERO);
-        total.setAmountARS(BigDecimal.ZERO);
-        total.setGananciaARS(BigDecimal.ZERO);
-        total.setGananciaBTC(BigDecimal.ZERO);
-        balanceList.stream().forEach(cryptos -> {
-            total.setAmountBTC(total.getAmountBTC().add(cryptos.getAmountBTC()));
-            total.setAmountARS(total.getAmountARS().add(cryptos.getAmountARS()));
-            if (cryptos.getGananciaARS() != null) {
-                total.setGananciaARS(total.getGananciaARS().add(cryptos.getGananciaARS()));
-            }
-            if (cryptos.getGananciaBTC() != null) {
-                total.setGananciaBTC(total.getGananciaBTC().add(cryptos.getGananciaBTC()));
-            }
+
+    @GetMapping("/historial")
+    public Object getH() {
+        final List<BitsoData> allBitso = this.dao.getAllBitso();
+        final Map<String, List<BigDecimal>> m = new HashMap();
+        final AtomicInteger cant = new AtomicInteger();
+        cant.set(0);
+        allBitso.stream().forEach(bd -> {
+            bd.getData().stream().forEach(b -> {
+                final List<BigDecimal> list;
+                if (!m.containsKey(b.getName())) {
+                    list = new ArrayList<>();
+                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
+                    if (cant.get() != 0) {
+                        list.set(cant.get() - 1, BigDecimal.ZERO);
+                    }
+                } else {
+                    list = m.get(b.getName());
+                    while (list.size() != cant.get()) {
+                        list.add(BigDecimal.ZERO);
+                    }
+                }
+                list.add(b.getAmountARS().setScale(2, RoundingMode.FLOOR));
+                m.put(b.getName(), list);
+            });
+            cant.getAndIncrement();
         });
-        balanceList.add(total);
+
+        m.values().stream().forEach(ob -> {
+            ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
+            Collections.replaceAll(ob, null, BigDecimal.ZERO);
+        });
+        return m.values();
     }
+
+    @GetMapping("/historialA")
+    public Object getHA() {
+        final List<BitsoData> allBitso = this.dao.getAllBitso();
+        final Map<String, List<BigDecimal>> m = new HashMap();
+        final AtomicInteger cant = new AtomicInteger();
+        cant.set(0);
+        allBitso.stream().forEach(bd -> {
+            bd.getData().stream().forEach(b -> {
+                final List<BigDecimal> list;
+                if (!m.containsKey(b.getName())) {
+                    list = new ArrayList<>();
+                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
+                    if (cant.get() != 0) {
+                        list.set(cant.get() - 1, BigDecimal.ZERO);
+                    }
+                } else {
+                    list = m.get(b.getName());
+                    while (list.size() != cant.get()) {
+                        list.add(BigDecimal.ZERO);
+                    }
+                }
+                list.add(b.getValueARS().setScale(2, RoundingMode.FLOOR));
+                m.put(b.getName(), list);
+            });
+            cant.getAndIncrement();
+        });
+        m.values().stream().forEach(ob -> {
+            ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
+            Collections.replaceAll(ob, null, BigDecimal.ZERO);
+        });
+        return m.values();
+    }
+
+    @GetMapping("/historialVB")
+    public Object getHB() {
+        final List<BitsoData> allBitso = this.dao.getAllBitso();
+        final Map<String, List<BigDecimal>> m = new HashMap();
+        final AtomicInteger cant = new AtomicInteger();
+        cant.set(0);
+        allBitso.stream().forEach(bd -> {
+            bd.getData().stream().forEach(b -> {
+                final List<BigDecimal> list;
+                if (!m.containsKey(b.getName())) {
+                    list = new ArrayList<>();
+                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
+                    if (cant.get() != 0) {
+                        list.set(cant.get() - 1, BigDecimal.ZERO);
+                    }
+                } else {
+                    list = m.get(b.getName());
+                    while (list.size() != cant.get()) {
+                        list.add(BigDecimal.ZERO);
+                    }
+                }
+                list.add(b.getAmountBTC().setScale(8, RoundingMode.FLOOR));
+                m.put(b.getName(), list);
+            });
+            cant.getAndIncrement();
+        });
+
+        m.values().stream().forEach(ob -> {
+            ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
+            Collections.replaceAll(ob, null, BigDecimal.ZERO);
+        });
+        return m.values();
+    }
+
 
     @SneakyThrows
     @GetMapping
@@ -61,17 +149,52 @@ public class BitsoC {
 
         final List<Balance> list = balanceList.values().stream().filter(balance -> balance.getAmount().doubleValue() > 0).collect(Collectors.toList());
 
+        list.sort((o1, o2) -> o2.getAmountARS().compareTo(o1.getAmountARS()));
+
         BitsoC.addTotal(list);
 
+        this.saveBitsoData(list);
+
         return list;
+    }
+
+    public static void addTotal(final List<Balance> balanceList) {
+        final Balance total = new Balance();
+        total.setName("Total");
+        total.setAmountBTC(BigDecimal.ZERO);
+        total.setAmountARS(BigDecimal.ZERO);
+        total.setAmountUSD(BigDecimal.ZERO);
+        total.setGananciaARS(BigDecimal.ZERO);
+        total.setGananciaBTC(BigDecimal.ZERO);
+        balanceList.stream().forEach(cryptos -> {
+            total.setAmountBTC(total.getAmountBTC().add(cryptos.getAmountBTC()));
+            total.setAmountARS(total.getAmountARS().add(cryptos.getAmountARS()));
+            total.setAmountUSD(total.getAmountUSD().add(cryptos.getAmountUSD()));
+            if (cryptos.getGananciaARS() != null) {
+                total.setGananciaARS(total.getGananciaARS().add(cryptos.getGananciaARS()));
+            }
+            if (cryptos.getGananciaBTC() != null) {
+                total.setGananciaBTC(total.getGananciaBTC().add(cryptos.getGananciaBTC()));
+            }
+        });
+        balanceList.add(total);
+    }
+
+    private void saveBitsoData(final List<Balance> list) {
+        final BitsoData bitsoData = new BitsoData();
+        bitsoData.setInstant(Instant.now());
+        bitsoData.setData(list);
+        this.dao.saveBitso(bitsoData);
     }
 
     public void fillSomething(final Map<String, Balance> balanceList) {
         balanceList.forEach((s, balance) -> {
             final BigDecimal ars = this.getValor(balance.getName(), "ars");
+            final BigDecimal usd = this.getValor(balance.getName(), "usd");
             BigDecimal btc = this.getValor(balance.getName(), "btc");
 
             balance.setValueARS(ars);
+            balance.setValueUSD(usd);
             if (balance.getName().equals("ars")) {
                 btc = BigDecimal.ONE.divide(btc, 12, RoundingMode.FLOOR);
             }
@@ -80,6 +203,7 @@ public class BitsoC {
 
             balance.setAmountBTC(balance.getAmount().multiply(btc));
             balance.setAmountARS(balance.getAmount().multiply(ars));
+            balance.setAmountUSD(balance.getAmount().multiply(usd));
         });
     }
 
@@ -87,10 +211,9 @@ public class BitsoC {
         balanceList.values().forEach(balance -> balance.setGananciaBTC(balance.getAmount().multiply(this.getValor(balance.getName(), "btc"))));
         balanceList.values().forEach(balance -> balance.setGananciaARS(balance.getAmount().multiply(this.getValor(balance.getName(), "ars"))));
 
-        BitsoOperation[] ledger = this.bitso.getLedger(null, "limit=25", "sort=asc");
+        BitsoOperation[] ledger;
         String last = "";
-        do {
-            last = "marker=" + ledger[ledger.length - 1].getEntryId();
+        while ((ledger = this.bitso.getLedger(null, "limit=100", "sort=asc", last)).length > 0) {
             for (final BitsoOperation bitsoOperation : ledger) {
                 final BitsoOperation.BalanceUpdate[] after = bitsoOperation.getAfterOperationBalances();
                 final Balance balance = balanceList.get(after[0].getCurrency());
@@ -102,17 +225,19 @@ public class BitsoC {
                     }
                 }
             }
-            ledger = this.bitso.getLedger(null, "limit=25", "sort=asc", last);
-        } while (ledger.length > 0);
+            last = "marker=" + ledger[ledger.length - 1].getEntryId();
+        }
+
+        final List<BitsoOperation> bitsoOperations = Arrays.asList(this.bitso.getLedger("", "sort=asc"));
 
         balanceList.forEach((s, balance) -> {
             switch (s) {
                 case "ars":
-                case "btc":
                 case "dai":
                 case "eth":
-                    balance.setGananciaBTC(BitsoC.ZERO);
-                    balance.setGananciaARS(BitsoC.ZERO);
+                case "btc":
+                    balance.setGananciaBTC(null);
+                    balance.setGananciaARS(null);
                     break;
                 default:
                     balance.setGananciaARS(balance.getGananciaBTC().multiply(this.getValor("btc", "ars")));
@@ -131,15 +256,17 @@ public class BitsoC {
     private BigDecimal tryConvert(final String c1, final String c2) {
         if (c1.equals(c2)) {
             final BigDecimal v = BigDecimal.ONE;
-            this.valor.put(c1 + "_" + c2, v);
             return v;
         }
-        if (c2 == "ars") {
-            final BigDecimal v = this.getValor(c1, "btc").multiply(this.getValor("btc"));
-            this.valor.put(c1 + "_" + c2, v);
-            return v;
+        final BigDecimal v;
+        if (c1.equals("ars") && c2.equals("usd")) {
+            v = this.getValor(c2, "btc").divide(this.getValor("btc", c1), 4, RoundingMode.FLOOR);
+        } else if (c1.equals("usd") && c2.equals("ars")) {
+            v = this.getValor(c1, "btc").divide(this.getValor("btc", c2), 4, RoundingMode.FLOOR);
+        } else {
+            v = this.getValor(c1, "btc").multiply(this.getValor("btc", c2));
         }
-        return BitsoC.ZERO;
+        return v;
     }
 
     public BigDecimal getValor(final String c) {

@@ -12,13 +12,76 @@
     <title>Control de guita</title>
     <script src="https://kit.fontawesome.com/a7e4de9cfc.js" crossorigin="anonymous"></script>
     <link href="css/Style.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+    <script src="http://cdn.zingchart.com/zingchart.min.js"></script>
+    <script src="http://cdn.zingchart.com/angular/zingchart-angularjs.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.16/angular-filter.js"></script>
     <style>
         fas {
             text-align: right;
         }
+
+        .info {
+            padding: 1rem 0 0;
+            min-height: 680px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .control-bar {
+            margin: 0 auto;
+            padding: 0 0 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-bar.loaded {
+            display: flex !important;
+            opacity: 1;
+        }
+
+        .control-bar > div {
+            display: flex;
+            align-items: center;
+        }
+
+        .control-bar > * + * {
+            margin-left: 10px;
+        }
+
+        .control-bar span {
+            margin-left: 7px;
+            display: inline-block;
+        }
+
+        .control-bar select {
+            min-width: 45px;
+            height: 40px;
+            background: #fff;
+            border: 1px solid #ebebeb;
+            border-radius: 4px;
+        }
+
+        .control-bar .sel-wide {
+            min-width: 60px;
+        }
+
+        .control-bar button {
+            min-width: 45px;
+            height: 40px;
+            cursor: pointer;
+            color: #fff;
+            background: #074361;
+            border: 1px solid #074361;
+            border-radius: 4px;
+        }
+
+        .zc-body {
+            background-color: #fff;
+        }
+
     </style>
 </HEAD>
 
@@ -61,22 +124,31 @@
                     <th>Cantidad</th>
                     <th>Valor en ARS</th>
                     <th>Valor en BTC</th>
+                    <th>Valor en USD</th>
                     <th>Ganancia en BTC</th>
                     <th>Ganancia en ARS</th>
                     <th>Valor de moneda en BTC</th>
                     <th>Valor de moneda en ARS</th>
+                    <th>Valor de moneda en USD</th>
                 </tr>
                 <tr ng-repeat="c in crypt">
                     <td>{{c.name | uppercase}}</td>
                     <td>{{c.amount | number:8}}</td>
                     <td>{{c.amountARS | currency}}</td>
                     <td>{{c.amountBTC | number:8}}</td>
+                    <td>{{c.amountUSD | currency}}</td>
                     <td>{{c.gananciaBTC | number:8}}</td>
                     <td>{{c.gananciaARS | currency}}</td>
                     <td>{{c.valueBTC | number:8}}</td>
                     <td>{{c.valueARS | currency}}</td>
+                    <td>{{c.valueUSD | currency}}</td>
                 </tr>
             </table>
+
+            <div zingchart id="chart-1" class="zc-ref" zc-values="cryptoHist"
+                 zc-height="700" zc-width="100%" zc-type="area"></div>
+            <div zingchart id="chart-2" class="zc-ref" zc-values="cryptoHistB"
+                 zc-height="700" zc-width="100%" zc-type="area"></div>
         </div>
 
         <button class="collapsible">Movimientos de Compras</button>
@@ -260,15 +332,20 @@
 </div>
 
 <script>
-    angular.module('myApp', ['angular.filter']).controller('movsCtrl',
+    angular.module('myApp', ['angular.filter', 'zingchart-angularjs']).controller('movsCtrl',
         function ($scope, $http, $timeout) {
             $scope.defase = 0;
 
             $scope.getCrypto = function () {
                 $http.get("bitso").then(function (response) {
                     $scope.crypt = response.data;
-
-                })
+                }).then(
+                    $http.get("bitso/historial").then(function (response) {
+                        $scope.cryptoHist = response.data;
+                    }).then(
+                        $http.get("bitso/historialVB").then(function (response) {
+                            $scope.cryptoHistB = response.data;
+                        })));
                 $timeout($scope.getCrypto, 10000);
             }
 
@@ -515,7 +592,8 @@
                 , {des: "Descripcion", val: "descripcion", default: false}
             ];
 
-        });
+        })
+    ;
 
 
 </script>
