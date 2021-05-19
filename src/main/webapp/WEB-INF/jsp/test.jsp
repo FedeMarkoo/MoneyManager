@@ -137,15 +137,20 @@
                     <td>{{c.amountARS | currency}}</td>
                     <td>{{c.amountBTC | number:8}}</td>
                     <td>{{c.amountUSD | currency}}</td>
-                    <td>{{c.gananciaBTC | number:8}}</td>
+                    <td>{{c.gananciaBTCText}}</td>
                     <td>{{c.gananciaARS | currency}}</td>
                     <td>{{c.valueBTC | number:8}}</td>
                     <td>{{c.valueARS | currency}}</td>
                     <td>{{c.valueUSD | currency}}</td>
                 </tr>
             </table>
-
-            <div zingchart id="chart-1" class="zc-ref" zc-values="cryptoHist"
+            <label>
+                <select ng-model="listCrypto" ng-init="listForOrder=''">
+                    <option ng-repeat="q in listCryptoV" value="{{q.val}}">{{q.des}}
+                    </option>
+                </select>
+            </label>
+            <div zingchart id="chart-1" class="zc-ref" zc-values="cryptoHist| limitTo:1000"
                  zc-height="700" zc-width="100%" zc-type="area"></div>
             <div zingchart id="chart-2" class="zc-ref" zc-values="cryptoHistB"
                  zc-height="700" zc-width="100%" zc-type="area"></div>
@@ -340,12 +345,11 @@
                 $http.get("bitso").then(function (response) {
                     $scope.crypt = response.data;
                 }).then(
-                    $http.get("bitso/historial").then(function (response) {
-                        $scope.cryptoHist = response.data;
-                    }).then(
-                        $http.get("bitso/historialVB").then(function (response) {
-                            $scope.cryptoHistB = response.data;
-                        })));
+                    $http.get("bitso/historial?op=" + $scope.listCrypto).then(function (response) {
+                        $scope.cryptoHist = response.data[0];
+                        $scope.cryptoHistB = response.data[1];
+                    })
+                );
                 $timeout($scope.getCrypto, 10000);
             }
 
@@ -556,6 +560,8 @@
 
             $scope.clasificaciones = [
                 "Comida",
+                "Celular",
+                "Edenor",
                 "Ferreteria",
                 "Construccion",
                 "Estudio",
@@ -566,8 +572,16 @@
                 "Farmacia"
             ];
 
+            $scope.listCryptoV = [
+                {des: "Dia", val: "dia", default: false}
+                , {des: "Todo", val: "tod", default: true}
+                , {des: "Mes", val: "mes", default: false}
+                , {des: "Hora", val: "hor", default: false}
+                , {des: "Semana", val: "sem", default: false}
+            ];
+
             $scope.orders = [
-                {des: "Tipo", val: "tipo", default: " ng-selected=\"{{q.default}}\""}
+                {des: "Tipo", val: "tipo", default: false}
                 , {des: "Monto", val: "monto", default: true}
                 , {des: "Dolar", val: "dolar", default: false}
                 , {des: "Fecha", val: "fecha", default: false}

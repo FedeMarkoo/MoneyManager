@@ -12,15 +12,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/bitso")
@@ -32,106 +37,148 @@ public class BitsoC {
     private final Map<String, BigDecimal> valor = new HashMap<>();
     private final MongoDAO dao;
     private BitsoData bitsoData;
+    private com.bitso.BitsoFunding[] fundings;
+    private final long correccion = -5000;
 
 
     @GetMapping("/historial")
-    public Object getH() {
-        final List<BitsoData> allBitso = this.dao.getAllBitso();
+    public Object getH(@RequestParam(required = false, defaultValue = "") final String op) {
+        List<BitsoData> allBitso = this.dao.getAllBitso();
+        final Instant t;
+        switch (op) {
+            case "dia":
+                t = Instant.now().minus(1, ChronoUnit.DAYS);
+                break;
+            case "mes":
+                t = Instant.now().minus(31, ChronoUnit.DAYS);
+                break;
+            case "hor":
+                t = Instant.now().minus(3, ChronoUnit.HOURS);
+                break;
+            case "sem":
+                t = Instant.now().minus(7, ChronoUnit.DAYS);
+                break;
+            case "tod":
+                t = Instant.MIN;
+                break;
+            default:
+                t = Instant.MIN;
+                final int size = allBitso.size();
+                allBitso = allBitso.subList(Math.max(size - 500, 0), size);
+                break;
+        }
+
         final Map<String, List<BigDecimal>> m = new HashMap();
         final AtomicInteger cant = new AtomicInteger();
         cant.set(0);
-        allBitso.stream().forEach(bd -> {
-            bd.getData().stream().forEach(b -> {
-                final List<BigDecimal> list;
-                if (!m.containsKey(b.getName())) {
-                    list = new ArrayList<>();
-                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
-                    if (cant.get() != 0) {
-                        list.set(cant.get() - 1, BigDecimal.ZERO);
-                    }
-                } else {
-                    list = m.get(b.getName());
-                    while (list.size() != cant.get()) {
-                        list.add(BigDecimal.ZERO);
-                    }
-                }
-                list.add(b.getAmountARS().setScale(2, RoundingMode.FLOOR));
-                m.put(b.getName(), list);
-            });
-            cant.getAndIncrement();
-        });
+        final AtomicReference<Instant> ant = new AtomicReference<>();
+        ant.set(Instant.ofEpochSecond(1617235200));
+        final AtomicLong invertido = new AtomicLong();
+        invertido.set(this.correccion);
+        final List<BigDecimal> inv = new ArrayList<>();
+        if (this.fundings != null) {
+            allBitso.stream().forEach(bd -> {
+                if (bd.getInstant().isAfter(t)) {
 
-        m.values().stream().forEach(ob -> {
-            ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
-            Collections.replaceAll(ob, null, BigDecimal.ZERO);
-        });
-        return m.values();
+                    final long funding = Stream.of(this.fundings).filter(b -> {
+                        final Instant instant = b.getFundingDate().toInstant();
+                        return instant.isAfter(ant.get()) && instant.isBefore(bd.getInstant());
+                    }).mapToLong(b -> b.getAmount().longValue()).sum();
+
+
+                    inv.add(BigDecimal.valueOf(invertido.addAndGet(funding)));
+                    ant.set(bd.getInstant());
+
+
+                    bd.getData().stream().forEach(b -> {
+                        final List<BigDecimal> list;
+                        if (!m.containsKey(b.getName())) {
+                            list = new ArrayList<>();
+                            list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
+                            if (cant.get() != 0) {
+                                list.set(cant.get() - 1, BigDecimal.ZERO);
+                            }
+                        } else {
+                            list = m.get(b.getName());
+                            while (list.size() != cant.get()) {
+                                list.add(BigDecimal.ZERO);
+                            }
+                        }
+                        list.add(b.getAmountARS().setScale(8, RoundingMode.FLOOR));
+                        m.put(b.getName(), list);
+                    });
+                    cant.getAndIncrement();
+                }
+            });
+
+            m.values().stream().forEach(ob -> {
+                ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
+                Collections.replaceAll(ob, null, BigDecimal.ZERO);
+            });
+        }
+
+        m.put("tot", inv);
+
+        return Arrays.asList(m.values(), this.getHB(op));
     }
 
-    @GetMapping("/historialA")
-    public Object getHA() {
-        final List<BitsoData> allBitso = this.dao.getAllBitso();
-        final Map<String, List<BigDecimal>> m = new HashMap();
-        final AtomicInteger cant = new AtomicInteger();
-        cant.set(0);
-        allBitso.stream().forEach(bd -> {
-            bd.getData().stream().forEach(b -> {
-                final List<BigDecimal> list;
-                if (!m.containsKey(b.getName())) {
-                    list = new ArrayList<>();
-                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
-                    if (cant.get() != 0) {
-                        list.set(cant.get() - 1, BigDecimal.ZERO);
-                    }
-                } else {
-                    list = m.get(b.getName());
-                    while (list.size() != cant.get()) {
-                        list.add(BigDecimal.ZERO);
-                    }
-                }
-                list.add(b.getValueARS().setScale(2, RoundingMode.FLOOR));
-                m.put(b.getName(), list);
-            });
-            cant.getAndIncrement();
-        });
-        m.values().stream().forEach(ob -> {
-            ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
-            Collections.replaceAll(ob, null, BigDecimal.ZERO);
-        });
-        return m.values();
-    }
+    public Object getHB(@RequestParam(required = false, defaultValue = "") final String op) {
+        List<BitsoData> allBitso = this.dao.getAllBitso();
+        final Instant t;
+        switch (op) {
+            case "dia":
+                t = Instant.now().minus(1, ChronoUnit.DAYS);
+                break;
+            case "mes":
+                t = Instant.now().minus(31, ChronoUnit.DAYS);
+                break;
+            case "hor":
+                t = Instant.now().minus(3, ChronoUnit.HOURS);
+                break;
+            case "sem":
+                t = Instant.now().minus(7, ChronoUnit.DAYS);
+                break;
+            case "tod":
+                t = Instant.MIN;
+                break;
+            default:
+                t = Instant.MIN;
+                final int size = allBitso.size();
+                allBitso = allBitso.subList(Math.max(size - 500, 0), size);
+                break;
+        }
 
-    @GetMapping("/historialVB")
-    public Object getHB() {
-        final List<BitsoData> allBitso = this.dao.getAllBitso();
         final Map<String, List<BigDecimal>> m = new HashMap();
         final AtomicInteger cant = new AtomicInteger();
         cant.set(0);
         allBitso.stream().forEach(bd -> {
-            bd.getData().stream().forEach(b -> {
-                final List<BigDecimal> list;
-                if (!m.containsKey(b.getName())) {
-                    list = new ArrayList<>();
-                    list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
-                    if (cant.get() != 0) {
-                        list.set(cant.get() - 1, BigDecimal.ZERO);
+            if (bd.getInstant().isAfter(t)) {
+                bd.getData().stream().forEach(b -> {
+                    final List<BigDecimal> list;
+                    if (!m.containsKey(b.getName())) {
+                        list = new ArrayList<>();
+                        list.addAll(Arrays.asList(new BigDecimal[cant.get()]));
+                        if (cant.get() != 0) {
+                            list.set(cant.get() - 1, BigDecimal.ZERO);
+                        }
+                    } else {
+                        list = m.get(b.getName());
+                        while (list.size() != cant.get()) {
+                            list.add(BigDecimal.ZERO);
+                        }
                     }
-                } else {
-                    list = m.get(b.getName());
-                    while (list.size() != cant.get()) {
-                        list.add(BigDecimal.ZERO);
-                    }
-                }
-                list.add(b.getAmountBTC().setScale(8, RoundingMode.FLOOR));
-                m.put(b.getName(), list);
-            });
-            cant.getAndIncrement();
+                    list.add(b.getAmountBTC().setScale(8, RoundingMode.FLOOR));
+                    m.put(b.getName(), list);
+                });
+                cant.getAndIncrement();
+            }
         });
 
         m.values().stream().forEach(ob -> {
             ob.addAll(Arrays.asList(new BigDecimal[cant.get() - ob.size()]));
             Collections.replaceAll(ob, null, BigDecimal.ZERO);
         });
+
         return m.values();
     }
 
@@ -139,44 +186,48 @@ public class BitsoC {
     @SneakyThrows
     @GetMapping
     public Object get() {
+        this.fundings = this.bitso.getFundings(null);
+
         final Map<String, Balance> balanceList = this.getBalances();
 
         this.getValores();
 
-        this.setGanancias(balanceList);
-
         this.fillSomething(balanceList);
+
+        this.setGanancias(balanceList);
 
         final List<Balance> list = balanceList.values().stream().filter(balance -> balance.getAmount().doubleValue() > 0).collect(Collectors.toList());
 
         list.sort((o1, o2) -> o2.getAmountARS().compareTo(o1.getAmountARS()));
 
-        BitsoC.addTotal(list);
+        this.addTotal(list);
 
         this.saveBitsoData(list);
 
         return list;
     }
 
-    public static void addTotal(final List<Balance> balanceList) {
+    public void addTotal(final List<Balance> balanceList) throws BitsoAPIException {
         final Balance total = new Balance();
         total.setName("Total");
         total.setAmountBTC(BigDecimal.ZERO);
         total.setAmountARS(BigDecimal.ZERO);
         total.setAmountUSD(BigDecimal.ZERO);
-        total.setGananciaARS(BigDecimal.ZERO);
-        total.setGananciaBTC(BigDecimal.ZERO);
+        total.setGananciaBTC(null);
+
+        final Date from = Date.from(Instant.ofEpochSecond(1617235200));
+        final List<com.bitso.BitsoFunding> fundings = Arrays.stream(this.fundings).filter(bitsoFunding -> bitsoFunding.getFundingDate().after(from)).collect(Collectors.toList());
+        double sum = fundings.stream().mapToDouble(b -> b.getAmount().doubleValue()).sum();
+        sum += this.correccion;
+
         balanceList.stream().forEach(cryptos -> {
             total.setAmountBTC(total.getAmountBTC().add(cryptos.getAmountBTC()));
             total.setAmountARS(total.getAmountARS().add(cryptos.getAmountARS()));
             total.setAmountUSD(total.getAmountUSD().add(cryptos.getAmountUSD()));
-            if (cryptos.getGananciaARS() != null) {
-                total.setGananciaARS(total.getGananciaARS().add(cryptos.getGananciaARS()));
-            }
-            if (cryptos.getGananciaBTC() != null) {
-                total.setGananciaBTC(total.getGananciaBTC().add(cryptos.getGananciaBTC()));
-            }
         });
+        final BigDecimal amount = BigDecimal.valueOf(sum);
+        total.setAmount(amount);
+        total.setGananciaARS(total.getAmountARS().subtract(amount));
         balanceList.add(total);
     }
 
@@ -240,7 +291,17 @@ public class BitsoC {
                     balance.setGananciaARS(null);
                     break;
                 default:
-                    balance.setGananciaARS(balance.getGananciaBTC().multiply(this.getValor("btc", "ars")));
+                    final BigDecimal gbtc = balance.getGananciaBTC();
+                    final BigDecimal cant = balance.getAmountBTC();
+                    if (cant != null && gbtc != null) {
+                        final BigDecimal rest = cant.subtract(gbtc);
+                        if (rest.compareTo(BitsoC.ZERO) != 0) {
+                            final String btc = gbtc.setScale(8, RoundingMode.FLOOR).toString();
+                            final BigDecimal percent = gbtc.divide(rest.divide(BigDecimal.valueOf(100)), 2, RoundingMode.FLOOR);
+                            balance.setGananciaBTCText(btc + "BTC " + percent + "%");
+                        }
+                    }
+                    balance.setGananciaARS(gbtc.multiply(this.getValor("btc", "ars")));
             }
         });
     }

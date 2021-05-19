@@ -16,5 +16,5 @@ public class Balance {
     private BigDecimal valueUSD;
     private BigDecimal gananciaBTC;
     private BigDecimal gananciaARS;
-
+    private String gananciaBTCText;
 }
